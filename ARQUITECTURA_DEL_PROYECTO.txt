@@ -1,0 +1,129 @@
+======================================================================
+==       GUÍA DE ARQUITECTURA - PROYECTO AGENDACON v2 (Laravel)     ==
+======================================================================
+
+Este documento es la fuente de verdad para las decisiones arquitectónicas
+del proyecto Agendaconv2. Su propósito es mantener la coherencia,
+claridad y evitar desviaciones del diseño fundamental.
+
+---
+
+### 1. PRINCIPIOS FUNDAMENTALES
+
+*   **Framework Backend:** Laravel 12.
+*   **Stack Frontend:** Bootstrap 5, Font Awesome 6, Vite.
+*   **Arquitectura General:** Multi-Tenant, Multi-Módulo, Multi-Sucursal.
+*   **Modelo de Base de Datos:** **BASE DE DATOS ÚNICA**. Toda la información de todos los tenants y módulos reside en una sola base de datos. Esta decisión simplifica el mantenimiento, los respaldos y la gestión general.
+*   **Separación de Datos (Tenancy):** La separación de datos entre tenants se logra estrictamente a través de una columna `tenant_id` (o similar, ej: `id_tenant`) en cada tabla relevante.
+*   **Licenciamiento de Módulos:** El acceso a los módulos se controla mediante una tabla `licencias` que vincula `tenants`, `modulos`, y define fechas de expiración, límites de usuarios, sucursales, etc.
+
+---
+
+### 2. ESTRUCTURA DE LA BASE DE DATOS (REGLAS DE ORO)
+
+Las tablas se clasifican en tres categorías principales:
+
+**A) Tablas Centrales del Sistema:**
+   - **Propósito:** Administran la aplicación en su conjunto. No pertenecen a ningún tenant.
+   - **Ejemplos:** `tenants`, `modulos`, `licencias`, `licencia_historial`, `users` (para Super-Admins).
+   - **Regla:** Estas tablas **NO DEBEN** tener una columna `tenant_id` ni `modulo_id`.
+
+**B) Tablas de Recursos del Tenant (Compartidas entre Módulos):**
+   - **Propósito:** Contienen entidades que pertenecen a un tenant y pueden ser utilizadas por diferentes módulos de ese mismo tenant.
+   - **Ejemplos:** `clientes` (del tenant), `pacientes` (del tenant), `proveedores`, `inventario_general`, `sucursales`, `users` (del tenant).
+   - **Regla:** Estas tablas **DEBEN** tener una columna `tenant_id`, pero **NO DEBEN** tener una columna `modulo_id`.
+
+**C) Tablas Transaccionales o de Configuración de Módulo Específico:**
+   - **Propósito:** Contienen registros de operaciones o configuraciones que son exclusivas de un módulo específico dentro de un tenant.
+   - **Sugerencia de Nomenclatura:** Prefijar el nombre de la tabla con el nombre del módulo para mayor claridad (ej: `restaurante_notas`, `medicas_citas`).
+   - **Ejemplos:**
+     - Módulo Restaurante: `restaurante_notas`, `restaurante_gastos`, `restaurante_menus`.
+     - Módulo Citas Médicas: `medicas_citas`, `medicas_historiales_clinicos`.
+     - Módulo Facturación: `facturacion_cfdi`, `facturacion_series_folios`.
+   - **Regla:** Estas tablas **DEBEN** tener **AMBAS** columnas: `tenant_id` y `modulo_id`.
+
+---
+
+### 3. LÓGICA DE ACCESO A DATOS (AISLAMIENTO DE TENANTS)
+
+*   **Global Scopes:** Para automatizar el aislamiento de datos, se implementará un **Global Scope** de Laravel. Este se aplicará automáticamente a todos los modelos que pertenezcan a un tenant.
+*   **Funcionamiento:** El Global Scope añadirá automáticamente la cláusula `WHERE tenant_id = session('tenant_id')` a cada consulta (SELECT, UPDATE, DELETE) para los modelos correspondientes. Esto previene fugas de datos accidentales entre tenants.
+*   **Controladores:** Los controladores, al crear un nuevo registro, serán responsables de asignar el `tenant_id` y, si aplica, el `modulo_id` basándose en la sesión del usuario autenticado.
+
+---
+
+### 5. ARQUITECTURA FRONTEND
+
+*   **UI Framework:** Se utilizará **Bootstrap 5** para el sistema de grid, componentes y diseño responsivo.
+*   **Iconografía:** Se utilizará **Font Awesome 6** para un set de iconos consistente y completo.
+*   **Asset Bundling:** Se usará **Vite**, la herramienta por defecto en Laravel, para la compilación y optimización de assets (CSS, JS).
+*   **Sugerencia de Modernización (Interactividad):** Para interfaces de usuario altamente dinámicas (reportes interactivos, dashboards en tiempo real, etc.), se evaluará el uso de:
+    *   **Laravel Livewire:** Para crear componentes dinámicos sin salir del ecosistema de Blade y PHP. Ideal para mantener la simplicidad.
+    *   **Inertia.js con Vue.js:** Para una experiencia de tipo "Single-Page Application" (SPA) más fluida, sin la complejidad de construir una API completa.
+
+La elección final dependerá de la complejidad de la interfaz requerida para cada módulo.
+
+
+---
+
+### 4. COMPONENTES CLAVE Y SUGERENCIAS DE IMPLEMENTACIÓN
+
+*   **Roles y Permisos:**
+    - **Sugerencia:** Utilizar el paquete `spatie/laravel-permission`. Es el estándar de la industria, flexible y robusto.
+    - **Roles Definidos:** `Super-Admin`, `Tenant-Admin`, `Tenant-User-Restaurante`, `Tenant-User-Citas`, etc.
+
+*   **Auditoría de Movimientos:**
+    - **Sugerencia:** Utilizar el paquete `spatie/laravel-activitylog`.
+    - **Configuración:** Se configurará para registrar eventos (created, updated, deleted) en los modelos críticos. Guardará `user_id`, `ip_address`, y los datos modificados. El nombre de la terminal se puede capturar desde el cliente con JavaScript y enviarlo en las peticiones.
+
+*   **Notificaciones:**
+    - **Implementación:** Usar el sistema de Notificaciones nativo de Laravel.
+    - **Canales:** Se configurarán canales para email y notificaciones dentro de la base de datos (para mostrar en la UI).
+    - **Colas de Trabajo (Queues):** Todas las notificaciones (especialmente por email) se enviarán a través de colas de trabajo con un driver como `database` o `redis`. Esto asegura que el envío no retrase la respuesta al usuario y permite reintentos automáticos si falla la entrega.
+
+*   **Facturación CFDI v4:**
+    - **Arquitectura:** Se creará un `Servicio` o `Action` en Laravel que encapsule la lógica de comunicación con el PAC (Proveedor Autorizado de Certificación).
+    - **Seguridad:** Las credenciales (CSD, llave, contraseña) y la clave del PAC se almacenarán de forma segura utilizando el sistema de cifrado de Laravel y se guardarán en variables de entorno (`.env`), nunca en la base de datos directamente.
+
+*   **Generador de Licencias:**
+    - **Lógica:** Un panel de Super-Admin permitirá crear registros en la tabla `licencias`. Se puede generar un `codigo_licencia` único (UUID o string aleatorio) que el tenant usará para activar sus módulos.
+    - **Flexibilidad:** La tabla `licencias` debe incluir campos para `fecha_expiracion`, `max_sucursales`, `max_usuarios`, etc., para permitir futuras ampliaciones del modelo de negocio.
+
+*   **Reportes (Exportación y Gráficos):**
+    - **Exportación:**
+        - **Excel (xlsx, csv):** Paquete `maatwebsite/excel`.
+        - **PDF:** Paquete `barryvdh/laravel-dompdf` o `spatie/laravel-pdf`.
+        - **Word (docx):** Paquete `phpoffice/phpword`.
+    - **Gráficos:**
+        - **Sugerencia:** Utilizar una librería de JavaScript en el frontend como `Chart.js` o `ApexCharts`. El backend en Laravel solo proveerá los datos a través de endpoints de API.
+
+*   **Impresión:**
+    - La "impresión fiscal" o a impresoras de tickets se maneja desde el navegador. El backend generará un HTML con el formato correcto (ticket) y el frontend invocará el diálogo de impresión del navegador (`window.print()`). La configuración de la impresora se realiza en el sistema operativo del cliente.
+
+*   **Extensibilidad Futura:**
+    - La arquitectura de `modulo_id` y tablas prefijadas está diseñada para que agregar un nuevo módulo (ej: `taller_mecanico`) solo requiera:
+        1.  Añadir un registro en la tabla `modulos`.
+        2.  Crear las nuevas migraciones para las tablas del módulo (ej: `taller_ordenes_servicio`).
+        3.  Desarrollar los controladores, vistas y rutas correspondientes.
+        4.  Asignar la licencia del nuevo módulo a los tenants.
+
+---
+
+### 6. GUÍA DE DESARROLLO Y REFERENCIA
+
+*   **Gestión de la Base de Datos:** Toda la creación y modificación del esquema de la base de datos se realizará **exclusivamente a través de migraciones de Laravel** (`php artisan make:migration`). Esto asegura un control de versiones de la base de datos y facilita el despliegue en diferentes entornos.
+*   **Referencia del Proyecto Legacy (`agendacon`):** El proyecto anterior servirá como una **guía funcional y de lógica de negocio**. Se analizará su funcionamiento para entender los requerimientos, pero **no se reutilizará su código**. La nueva implementación debe seguir desde cero las convenciones, patrones de diseño y mejores prácticas de Laravel.
+*   **Seguridad:** Se seguirán las mejores prácticas de seguridad de Laravel por defecto:
+    *   Protección contra CSRF (Cross-Site Request Forgery).
+    *   Protección contra XSS (Cross-Site Scripting) mediante el escape automático de Blade.
+    *   Validación estricta de todas las entradas del usuario.
+    *   Uso del ORM Eloquent para prevenir inyecciones SQL.
+
+---
+
+### 7. NOTAS TÉCNICAS IMPORTANTES
+
+*   **Estructura de Laravel 12:** Se trabajará con la estructura de archivos moderna de Laravel, donde la configuración de middleware, scheduling y rutas se centraliza en `bootstrap/app.php` y la carpeta `routes/`.
+*   **Migraciones:** Todas las migraciones residirán en `database/migrations/`. No se usarán carpetas separadas para evitar la confusión del proyecto anterior.
+
+Este documento debe ser revisado y acordado antes de escribir la primera línea de código de un nuevo componente.

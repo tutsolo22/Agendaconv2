@@ -1,0 +1,74 @@
+======================================================================
+==                REGISTRO DE AVANCE - PROYECTO AGENDACON v2        ==
+======================================================================
+
+Este archivo sirve como un checklist y registro de decisiones para
+el desarrollo del proyecto.
+
+---
+
+### FASE 0: CONFIGURACIÓN INICIAL DEL PROYECTO
+
+- [x] Definir la arquitectura del proyecto (ARQUITECTURA_DEL_PROYECTO.txt).
+- [x] Crear el archivo de registro de avance (este archivo).
+- [x] Instalar Laravel 12 y configurar el entorno de desarrollo.
+- [x] Configurar la conexión a la base de datos única en el archivo `.env`.
+- [x] Crear la base de datos `agendaconv2_db`.
+- [x] Configurar el frontend stack (Vite) con Bootstrap 5 y Font Awesome 6.
+- [x] Inicializar el repositorio de Git y realizar el primer commit.
+- [x] Instalar paquetes iniciales:
+    - [x] `spatie/laravel-permission` (Roles y Permisos)
+    - [x] `spatie/laravel-activitylog` (Auditoría)
+
+---
+
+### FASE 1: NÚCLEO DEL SISTEMA Y SUPER-ADMIN
+
+- [ ] Crear migraciones para las tablas centrales del sistema:
+    - [ ] `tenants`
+    - [ ] `modulos`
+    - [ ] `users` (con campo para rol, ej: `is_super_admin`)
+    - [ ] `licencias` (relaciona tenants, modulos, fechas, límites)
+    - [ ] `licencia_historial`
+- [ ] Ejecutar las migraciones iniciales (`php artisan migrate`).
+- [ ] Implementar el sistema de Roles y Permisos de Spatie.
+- [ ] Crear Seeder para los roles (`Super-Admin`, `Tenant-Admin`) y módulos iniciales.
+- [ ] Crear el primer usuario Super-Admin (vía Seeder o comando).
+- [ ] Desarrollar el panel del Super-Admin (rutas, controladores, vistas):
+    - [ ] Login para Super-Admin.
+    - [ ] CRUD para Tenants.
+    - [ ] CRUD para Módulos.
+    - [ ] CRUD para Licencias (Generador de licencias).
+
+---
+
+### FASE 2: AUTENTICACIÓN Y GESTIÓN DE TENANTS
+
+- [ ] Implementar el login para usuarios de tenants.
+- [ ] Crear middleware para identificar y cargar el `tenant_id` en la sesión.
+- [ ] Implementar el Global Scope para el aislamiento automático de datos por `tenant_id`.
+- [ ] Desarrollar el panel del Tenant-Admin:
+    - [ ] Ver información de su licencia y módulos contratados.
+    - [ ] CRUD para sus propios usuarios (`users` con `tenant_id`).
+    - [ ] CRUD para sus sucursales (`sucursales` con `tenant_id`).
+
+---
+
+### FASE 3: DESARROLLO DEL PRIMER MÓDULO (RESTAURANTE)
+
+- [ ] Crear migraciones para las tablas del módulo (ej: `restaurante_notas`, `restaurante_menus`).
+- [ ] Crear Modelos, Controladores y Vistas para las funcionalidades del módulo.
+- [ ] Asegurar que todas las consultas y creaciones de registros respeten `tenant_id` y `modulo_id`.
+- [ ] Implementar la lógica de negocio específica del restaurante.
+
+---
+
+### FASE 4 Y POSTERIORES: MÓDULOS ADICIONALES
+
+- [ ] Módulo de Facturación CFDI v4.
+- [ ] Módulo de Citas Médicas.
+- [ ] Módulo de Reportes y Gráficos.
+- [ ] Implementar sistema de Notificaciones con Colas de Trabajo.
+- [ ] Implementar sistema de Auditoría en modelos críticos.
+
+---
