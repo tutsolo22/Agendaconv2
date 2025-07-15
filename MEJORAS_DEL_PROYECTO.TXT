@@ -1,0 +1,9 @@
+1.-en el area de tenan al momento de borrado, que lo marque como deshabilitado, le de entrada a su aplicacion pero solo le deje realizar una copia de seguridad de sus datos, si llega a los 180 dias deshabilitado por falta de pago
+entonces preparar toda su informacion, para destruirla, desde sus usuarios, e informacion de los modulos contratados.
+2.-tambien agregar una licencia para respaldos, en donde pueden guardar su informacion durante 1 año
+sin que tengan una licencia de modulos.
+3.-tener la aplicacion de facturacion electronica como aplicacion
+4.- el lgin cuando es de un super usuario lleva al dashboard de usuario normal y no del super usuario
+5.- agregar a la barra del dashboard de super admin las vistas de modulo.
+6.-¿Cómo podría mostrar los módulos asignados a un tenant en la vista de edición del tenant?
+7.-¿Cómo puedo asegurar que un tenant solo pueda acceder a los módulos que le han sido asignados?

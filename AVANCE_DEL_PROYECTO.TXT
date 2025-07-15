@@ -22,21 +22,22 @@ el desarrollo del proyecto.
 
 ---
 
-### FASE 1: NÚCLEO DEL SISTEMA Y SUPER-ADMIN
+### FASE 1: NÚCLEO DEL SISTEMA Y SUPER-ADMIN (En Progreso)
 
-- [ ] Crear migraciones para las tablas centrales del sistema:
-    - [ ] `tenants`
-    - [ ] `modulos`
-    - [ ] `users` (con campo para rol, ej: `is_super_admin`)
-    - [ ] `licencias` (relaciona tenants, modulos, fechas, límites)
-    - [ ] `licencia_historial`
-- [ ] Ejecutar las migraciones iniciales (`php artisan migrate`).
-- [ ] Implementar el sistema de Roles y Permisos de Spatie.
-- [ ] Crear Seeder para los roles (`Super-Admin`, `Tenant-Admin`) y módulos iniciales.
-- [ ] Crear el primer usuario Super-Admin (vía Seeder o comando).
-- [ ] Desarrollar el panel del Super-Admin (rutas, controladores, vistas):
-    - [ ] Login para Super-Admin.
-    - [ ] CRUD para Tenants.
+- [x] Crear archivos de migración para las tablas centrales del sistema:
+    - [x] `tenants`
+    - [x] `modulos`
+    - [x] `users` (con campo para rol, ej: `is_super_admin`)
+    - [x] `licencias` (relaciona tenants, modulos, fechas, límites)
+    - [x] `licencia_historial`
+- [x] Ejecutar las migraciones para crear las tablas centrales en la BD.
+- [x] Crear los modelos de Eloquent para las tablas centrales.
+- [x] Implementar el sistema de Roles y Permisos de Spatie.
+- [x] Crear Seeder para los roles (`Super-Admin`, `Tenant-Admin`) y módulos iniciales.
+- [x] Crear el primer usuario Super-Admin (vía Seeder o comando).
+- [x] Desarrollar el panel del Super-Admin (rutas, controladores, vistas):
+    - [x] Login para Super-Admin.
+    - [x] CRUD para Tenants.
     - [ ] CRUD para Módulos.
     - [ ] CRUD para Licencias (Generador de licencias).
 

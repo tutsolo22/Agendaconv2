@@ -2,15 +2,18 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+        // Añadimos el Trait de Spatie para manejar Roles y Permisos
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +24,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'tenant_id',
+        'is_super_admin',
     ];
 
     /**
@@ -44,5 +49,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+        /**
+     * Un usuario pertenece a un Tenant (si no es Super-Admin).
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Un usuario (Super-Admin) puede realizar muchas acciones en el historial de licencias.
+     */
+    public function licenciaHistorial(): HasMany
+    {
+        // Especificamos la clave foránea 'realizado_por'
+        return $this->hasMany(LicenciaHistorial::class, 'realizado_por');
     }
 }

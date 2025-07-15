@@ -110,3 +110,64 @@ Para trabajar en el proyecto, se deben ejecutar dos servidores de desarrollo en 
     ```
 
 La aplicación es accesible en la URL proporcionada por `php artisan serve` (generalmente `http://127.0.0.1:8000`).
+
+---
+
+## 5. Control de Versiones y Dependencias Adicionales
+
+### 5.1. Inicialización de Git
+
+Se inicializó un repositorio de Git para el control de versiones del proyecto y se realizó el primer commit para guardar el estado inicial de la configuración.
+
+```shell
+# Inicializar el repositorio
+git init
+
+# Añadir todos los archivos
+git add .
+
+# Realizar el primer commit
+git commit -m "Initial commit: Laravel 12, DB, and frontend setup"
+```
+
+### 5.2. Instalación de Paquetes de Spatie
+
+Se instalaron dos paquetes clave de Spatie para funcionalidades avanzadas:
+
+```shell
+# Para la gestión de Roles y Permisos
+composer require spatie/laravel-permission
+
+# Para el registro de actividad y auditoría
+composer require spatie/laravel-activitylog
+```
+
+---
+
+## 6. Estructura de la Base de Datos (Fase 1)
+
+Se crearon los archivos de migración para definir las tablas centrales del sistema, siguiendo el plan de arquitectura.
+
+*   `create_tenants_table`: Para las empresas o clientes.
+*   `create_modulos_table`: Para los módulos del sistema (Restaurante, Facturación, etc.).
+*   `add_custom_fields_to_users_table`: Para añadir la relación con `tenants` y el rol de Super-Admin.
+*   `create_licencias_table`: Para gestionar las licencias de los tenants.
+*   `create_licencia_historial_table`: Para auditar los cambios en las licencias.
+
+Finalmente, se ejecutó el comando `php artisan migrate:fresh` para eliminar cualquier tabla preexistente y crear toda la estructura de la base de datos de forma limpia y ordenada, incluyendo las tablas por defecto de Laravel (`users`, `sessions`, etc.) y las nuevas tablas del sistema.
+
+---
+
+## 7. Implementación de Roles y Permisos
+
+Para gestionar el acceso de los usuarios a las diferentes partes del sistema, se configuró el paquete `spatie/laravel-permission`.
+
+1.  **Publicar Archivos del Paquete**: Se publicó el archivo de migración y el archivo de configuración del paquete.
+    ```shell
+    php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
+    ```
+2.  **Ejecutar Migración**: Se ejecutó la nueva migración para crear las tablas `roles`, `permissions`, y las tablas pivote correspondientes.
+    ```shell
+    php artisan migrate
+    ```
+3.  **Configurar Modelo User**: Se añadió el trait `HasRoles` al modelo `app/Models/User.php` para conectarlo con el sistema de permisos. Este paso se realizó durante la creación inicial de los modelos.
