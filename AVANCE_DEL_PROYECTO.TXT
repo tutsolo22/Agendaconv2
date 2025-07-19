@@ -38,24 +38,25 @@ el desarrollo del proyecto.
 - [x] Desarrollar el panel del Super-Admin (rutas, controladores, vistas):
     - [x] Login para Super-Admin.
     - [x] CRUD para Tenants.
-    - [ ] CRUD para Módulos.
-    - [ ] CRUD para Licencias (Generador de licencias).
+    - [x] CRUD para Módulos.
+    - [x] CRUD para Licencias (Generador de licencias).
 
 ---
 
 ### FASE 2: AUTENTICACIÓN Y GESTIÓN DE TENANTS
 
-- [ ] Implementar el login para usuarios de tenants.
-- [ ] Crear middleware para identificar y cargar el `tenant_id` en la sesión.
-- [ ] Implementar el Global Scope para el aislamiento automático de datos por `tenant_id`.
-- [ ] Desarrollar el panel del Tenant-Admin:
-    - [ ] Ver información de su licencia y módulos contratados.
-    - [ ] CRUD para sus propios usuarios (`users` con `tenant_id`).
-    - [ ] CRUD para sus sucursales (`sucursales` con `tenant_id`).
+- [x] Implementar el login para usuarios de tenants.
+- [x] Crear middleware para validar licencias de módulos.
+- [x] Implementar el Global Scope para el aislamiento automático de datos por `tenant_id`.
+- [x] Desarrollar el panel del Tenant-Admin:
+    - [x] Dashboard básico para Tenant-Admin.
+    - [x] Ver información de su licencia y módulos contratados (en la barra de navegación).
+    - [x] CRUD para sus propios usuarios (`users` con `tenant_id`).
+    - [x] CRUD para sus sucursales (`sucursales` con `tenant_id`).
 
 ---
 
-### FASE 3: DESARROLLO DEL PRIMER MÓDULO (RESTAURANTE)
+### FASE 3: DESARROLLO DE MÓDULOS
 
 - [ ] Crear migraciones para las tablas del módulo (ej: `restaurante_notas`, `restaurante_menus`).
 - [ ] Crear Modelos, Controladores y Vistas para las funcionalidades del módulo.

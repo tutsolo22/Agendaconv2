@@ -2,8 +2,14 @@
 entonces preparar toda su informacion, para destruirla, desde sus usuarios, e informacion de los modulos contratados.
 2.-tambien agregar una licencia para respaldos, en donde pueden guardar su informacion durante 1 año
 sin que tengan una licencia de modulos.
-3.-tener la aplicacion de facturacion electronica como aplicacion
-4.- el lgin cuando es de un super usuario lleva al dashboard de usuario normal y no del super usuario
-5.- agregar a la barra del dashboard de super admin las vistas de modulo.
+x 3.-tener la aplicacion de facturacion electronica como aplicacion
+x 4.- el login cuando es de un super usuario lleva al dashboard de usuario normal y no del super usuario
+x 5.- agregar a la barra del dashboard de super admin las vistas de modulo.
 6.-¿Cómo podría mostrar los módulos asignados a un tenant en la vista de edición del tenant?
 7.-¿Cómo puedo asegurar que un tenant solo pueda acceder a los módulos que le han sido asignados?
+8.- hacer que la barra de navegacion del admin, cuando sea super admin, 
+muestre la opcio de cambiar de panel.
+9.-Ahora necesito crear las rutas y el controlador para la sección de "Licencias". ¿Puedes generarlos?
+10.camiar la pagina 403 cuado no tenga licencia el tenant para un modulo y que salga una notificacion que diga que no tiene Licencias
+si desea adquirirla
+11.-                                                                           

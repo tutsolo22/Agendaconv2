@@ -16,7 +16,13 @@
     </head>
     <body class="font-sans antialiased bg-light">
         <div class="min-vh-100">
-            <x-layouts.admin-navigation />
+            {{-- Lógica para mostrar la barra de navegación correcta según el rol --}}
+            @if (auth()->user()->is_super_admin || auth()->user()->hasRole('Super-Admin'))
+                <x-layouts.superadmin-navigation />
+            @elseif (auth()->user()->hasRole('Tenant-Admin'))
+                <x-layouts.admin-navigation />
+            @endif
+
             <!-- Page Heading -->
             @if (isset($header))
                 <header class="bg-white shadow-sm">

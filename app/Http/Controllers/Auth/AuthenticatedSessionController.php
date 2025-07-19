@@ -28,8 +28,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        if ($request->user()->is_super_admin) {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Si es Super Admin, va al panel de admin.
+        if ($user->is_super_admin || $user->hasRole('Super-Admin')) {
             return redirect()->intended(route('admin.dashboard'));
+        }
+
+        // Si es Tenant Admin, va al panel de tenant.
+        if ($user->hasRole('Tenant-Admin')) {
+            return redirect()->intended(route('tenant.dashboard'));
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

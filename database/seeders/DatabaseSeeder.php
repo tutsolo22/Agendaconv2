@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
 
         // Crear el usuario Super-Admin
         $superAdmin = User::create([
-            'name' => 'Super Admin',
+            'name' => 'Super-Admin',
             'email' => 'superadmin@agendacon.com',
             'password' => Hash::make('password'), // Cambiar en producción
             'is_super_admin' => true,
