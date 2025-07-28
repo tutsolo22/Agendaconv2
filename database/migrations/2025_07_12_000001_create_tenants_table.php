@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
+            $table->string('name');
             $table->string('rfc', 13)->unique()->nullable();
             $table->string('direccion')->nullable();
-            $table->string('telefono')->nullable();
+            $table->string('phone')->nullable();
             $table->string('email')->unique();
             $table->string('logotipo')->nullable();
             $table->boolean('is_active')->default(true);

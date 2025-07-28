@@ -7,19 +7,18 @@ use Illuminate\Support\Facades\Auth;
 
 trait TenantScoped
 {
-    /**
-     * The "booted" method of the model.
-     */
     protected static function bootTenantScoped(): void
     {
+        // Aplica el scope global para aislar los datos por tenant.
         static::addGlobalScope(new TenantScope);
 
-        // Asignar automáticamente el tenant_id al crear un nuevo recurso
-        // si el usuario autenticado es un usuario de tenant.
+        // Asigna automáticamente el tenant_id al crear un nuevo registro.
         static::creating(function ($model) {
-            if (Auth::check() && Auth::user()->tenant_id && !Auth::user()->is_super_admin) {
-                // Solo asigna si no se ha establecido explícitamente.
-                $model->tenant_id = $model->tenant_id ?? Auth::user()->tenant_id;
+            // Aplicamos la misma lógica segura y desacoplada.
+            // Si hay un usuario logueado y este tiene un tenant_id, se lo asignamos al nuevo modelo.
+            // Esto no afecta al Super-Admin (tenant_id es null) y funciona para todos los usuarios de tenants.
+            if (Auth::check() && $tenantId = Auth::user()->tenant_id) {
+                $model->tenant_id = $model->tenant_id ?? $tenantId;
             }
         });
     }

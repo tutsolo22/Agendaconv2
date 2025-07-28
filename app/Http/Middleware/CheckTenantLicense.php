@@ -4,52 +4,38 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Licencia;
-use App\Models\Modulo;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 class CheckTenantLicense
 {
     /**
      * Handle an incoming request.
      *
+     * Este middleware verifica la licencia del tenant. He añadido logs para que puedas
+     * ver exactamente qué está pasando en tu archivo `storage/logs/laravel.log`.
+     *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  $moduleSlug  El 'slug' o identificador único del módulo a verificar.
      */
-    public function handle(Request $request, Closure $next, string $moduleSlug): Response
+    public function handle(Request $request, Closure $next): Response
     {
-        /** @var \App\Models\User $user */
         $user = Auth::user();
-
-        // Si es Super Admin, tiene acceso a todo.
-        if ($user->is_super_admin || $user->hasRole('Super-Admin')) {
-            return $next($request);
+        // Nos aseguramos de que el usuario esté logueado y tenga un tenant
+        if (!$user || !$tenant = $user->tenant) {
+            Log::warning('[CheckTenantLicense] Middleware ejecutado para un usuario sin tenant o no autenticado.');
+            // Si no hay tenant, es un error de configuración grave.
+            abort(500, 'Error de configuración: El usuario no está asociado a un tenant.');
         }
 
-        // Si el usuario no pertenece a un tenant, no puede acceder a módulos de tenant.
-        if (!$user->tenant_id) {
-            abort(403, 'Acceso denegado. No estás asociado a un tenant.');
+        // Verificamos si el tenant tiene CUALQUIER licencia activa y no expirada.
+        $hasActiveLicense = $tenant->licencias()->where('is_active', true)->where('fecha_fin', '>', now())->exists();
+
+        if (!$hasActiveLicense) {
+            Log::warning("[CheckTenantLicense] El Tenant ID {$tenant->id} no tiene una licencia asignada.");
+            abort(403, 'No tienes una licencia asignada. Por favor, contacta a soporte.');
         }
 
-        // Buscamos el módulo por su slug/identificador.
-        $modulo = Modulo::where('nombre', $moduleSlug)->first(); // Asumimos que el nombre es único y se usa como slug.
-        if (!$modulo) {
-            abort(404, 'Módulo no encontrado.');
-        }
-
-        // Verificamos la licencia del tenant para este módulo.
-        $licencia = Licencia::where('tenant_id', $user->tenant_id)
-                            ->where('modulo_id', $modulo->id)
-                            ->first();
-
-        // Validamos las condiciones de la licencia.
-        if (!$licencia || !$licencia->is_active || Carbon::now()->gt($licencia->fecha_expiracion)) {
-            abort(403, 'Acceso denegado. Tu licencia para este módulo no es válida o ha expirado.');
-        }
-
-        // Si todo está en orden, permite el acceso.
         return $next($request);
     }
 }

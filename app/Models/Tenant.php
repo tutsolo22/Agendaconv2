@@ -27,4 +27,9 @@ class Tenant extends Model
     {
         return $this->hasMany(Licencia::class);
     }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
 }

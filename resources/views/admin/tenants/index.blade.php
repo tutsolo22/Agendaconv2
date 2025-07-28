@@ -1,68 +1,63 @@
-<x-layouts.admin>
+<x-app-layout>
     <x-slot name="header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="h4 fw-bold">
+        <div class="flex justify-between items-center">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Gestión de Tenants') }}
             </h2>
-            <a href="{{ route('admin.tenants.create') }}" class="btn btn-primary">
-                <i class="fa-solid fa-plus"></i> {{ __('Nuevo Tenant') }}
+            <a href="{{ route('admin.tenants.create') }}" class="px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600">
+                Crear Nuevo Tenant
             </a>
         </div>
     </x-slot>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900">
+                    @if(session('success'))
+                        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <span class="block sm:inline">{{ session('success') }}</span>
+                        </div>
+                    @endif
 
-    <div class="card">
-        <div class="card-header">
-            Listado de Tenants
-        </div>
-        <div class="card-body">
-            @if ($tenants->count())
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Dominio</th>
-                                <th>Creado el</th>
-                                <th class="text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($tenants as $tenant)
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-800 text-white">
                                 <tr>
-                                    <td>{{ $tenant->id }}</td>
-                                    <td>{{ $tenant->name }}</td>
-                                    <td>{{ $tenant->domain }}</td>
-                                    <td>{{ $tenant->created_at->format('d/m/Y H:i') }}</td>
-                                    <td class="text-end">
-                                        <a href="{{ route('admin.tenants.edit', $tenant) }}" class="btn btn-sm btn-warning"><i class="fa-solid fa-pen-to-square"></i> Editar</a>
-                                        <form action="{{ route('admin.tenants.destroy', $tenant) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este tenant? Esta acción no se puede deshacer.');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash-alt"></i> Eliminar</button>
-                                        </form>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <a href="{{ route('admin.tenants.assignModules', $tenant) }}" class="text-blue-600 hover:text-blue-900">Asignar Módulos</a>
-                                    </td>
+                                    <th class="w-1/4 text-left py-3 px-4 uppercase font-semibold text-sm">Nombre del Tenant</th>
+                                    <th class="w-1/4 text-left py-3 px-4 uppercase font-semibold text-sm">Admin</th>
+                                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Email del Admin</th>
+                                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Acciones</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="text-gray-700">
+                                @forelse ($tenants as $tenant)
+                                    <tr class="border-b">
+                                        <td class="text-left py-3 px-4">{{ $tenant->name }}</td>
+                                        <td class="text-left py-3 px-4">{{ $tenant->users->first()->name ?? 'N/A' }}</td>
+                                        <td class="text-left py-3 px-4">{{ $tenant->users->first()->email ?? 'N/A' }}</td>
+                                        <td class="text-left py-3 px-4">
+                                            <a href="{{ route('admin.tenants.edit', $tenant) }}" class="text-blue-500 hover:text-blue-700 font-semibold">Editar</a>
+                                            <form action="{{ route('admin.tenants.destroy', $tenant) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este tenant? Esta acción no se puede deshacer.');" class="inline-block ml-4">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-500 hover:text-red-700 font-semibold">Eliminar</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4">No hay tenants registrados.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4">
+                        {{ $tenants->links() }}
+                    </div>
                 </div>
-                {{ $tenants->links() }}
-            @else
-                <div class="alert alert-info" role="alert">
-                    No se encontraron tenants registrados.
-                </div>
-            @endif
+            </div>
         </div>
     </div>
-</x-layouts.admin>
+</x-app-layout>

@@ -45,19 +45,24 @@ class LicenciaController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'tenant_id' => 'required|exists:tenants,id',
+        // Preparamos los datos para asegurar que 'is_active' tenga un valor booleano
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        // Validamos los datos preparados
+        $validatedData = validator($data, [
+            'tenant_id' => 'nullable|exists:tenants,id', // Hacemos que el tenant_id sea opcional
             'modulo_id' => [
                 'required',
                 'exists:modulos,id',
                 Rule::unique('licencias')->where(function ($query) use ($request) {
-                    return $query->where('tenant_id', $request->tenant_id);
-                }),
+                    return $query->where('tenant_id', $request->tenant_id)->whereNotNull('tenant_id');
+                }), // La regla unique solo aplica si se proporciona un tenant_id
             ],
-            'fecha_expiracion' => 'required|date|after:today',
-            'max_usuarios' => 'required|integer|min:1',
-            'is_active' => 'required|boolean',
-        ], ['modulo_id.unique' => 'Este tenant ya tiene una licencia para el módulo seleccionado.']);
+            'fecha_fin' => 'required|date|after:today',
+            'limite_usuarios' => 'required|integer|min:1',
+            'is_active' => 'boolean',
+        ], ['modulo_id.unique' => 'Este tenant ya tiene una licencia para el módulo seleccionado.'])->validate();
 
         Licencia::create($validatedData);
 
@@ -86,19 +91,24 @@ class LicenciaController extends Controller
      */
     public function update(Request $request, Licencia $licencia): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'tenant_id' => 'required|exists:tenants,id',
+        // Preparamos los datos para el checkbox
+        $data = $request->all();
+        $data['is_active'] = $request->has('is_active');
+
+        // Validamos los datos preparados
+        $validatedData = validator($data, [
+            'tenant_id' => 'nullable|exists:tenants,id',
             'modulo_id' => [
                 'required',
                 'exists:modulos,id',
                 Rule::unique('licencias')->where(function ($query) use ($request) {
-                    return $query->where('tenant_id', $request->tenant_id);
-                })->ignore($licencia->id),
+                    return $query->where('tenant_id', $request->tenant_id)->whereNotNull('tenant_id');
+                })->ignore($licencia->id), // La regla unique solo aplica si se proporciona un tenant_id
             ],
-            'fecha_expiracion' => 'required|date|after:today',
-            'max_usuarios' => 'required|integer|min:1',
-            'is_active' => 'required|boolean',
-        ], ['modulo_id.unique' => 'Este tenant ya tiene una licencia para el módulo seleccionado.']);
+            'fecha_fin' => 'required|date|after:today',
+            'limite_usuarios' => 'required|integer|min:1',
+            'is_active' => 'boolean',
+        ], ['modulo_id.unique' => 'Este tenant ya tiene una licencia para el módulo seleccionado.'])->validate();
 
         $licencia->update($validatedData);
 

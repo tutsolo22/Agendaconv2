@@ -33,7 +33,7 @@ el desarrollo del proyecto.
 - [x] Ejecutar las migraciones para crear las tablas centrales en la BD.
 - [x] Crear los modelos de Eloquent para las tablas centrales.
 - [x] Implementar el sistema de Roles y Permisos de Spatie.
-- [x] Crear Seeder para los roles (`Super-Admin`, `Tenant-Admin`) y módulos iniciales.
+- [x] Crear Seeder para los roles, módulos y datos de prueba.
 - [x] Crear el primer usuario Super-Admin (vía Seeder o comando).
 - [x] Desarrollar el panel del Super-Admin (rutas, controladores, vistas):
     - [x] Login para Super-Admin.

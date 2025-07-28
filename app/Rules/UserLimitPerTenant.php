@@ -4,7 +4,6 @@ namespace App\Rules;
 
 use App\Models\Licencia;
 use App\Models\User;
-use Carbon\Carbon;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Auth;
@@ -18,34 +17,28 @@ class UserLimitPerTenant implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        /** @var \App\Models\User $currentUser */
-        $currentUser = Auth::user();
+        $user = Auth::user();
 
-        if ($currentUser->is_super_admin) {
-            return; // Los Super Admins no están sujetos a este límite.
-        }
-
-        if (!$currentUser->tenant_id) {
-            $fail('No estás asociado a ningún tenant.');
+        if (!$user || !$tenantId = $user->tenant_id) {
+            // Esta regla solo se aplica en el contexto de un tenant.
             return;
         }
 
-        // Buscamos el límite más alto de usuarios en todas las licencias activas del tenant.
-        $maxUsers = Licencia::where('tenant_id', $currentUser->tenant_id)
+        // 1. Calcular el límite total de usuarios para el tenant.
+        // Sumamos los límites de todas las licencias activas y no expiradas.
+        $userLimit = Licencia::where('tenant_id', $tenantId)
             ->where('is_active', true)
-            ->whereDate('fecha_expiracion', '>', Carbon::now())
-            ->max('max_usuarios');
+            ->where('fecha_fin', '>', now())
+            ->sum('limite_usuarios');
 
-        // Si no hay licencia, no se pueden crear usuarios.
-        if (is_null($maxUsers)) {
-            $fail('No se ha encontrado una licencia activa que defina el límite de usuarios.');
-            return;
-        }
+        // 2. Contar el número actual de usuarios del tenant.
+        $currentUserCount = User::where('tenant_id', $tenantId)->count();
 
-        $currentUserCount = User::where('tenant_id', $currentUser->tenant_id)->count();
-
-        if ($currentUserCount >= $maxUsers) {
-            $fail('Ha alcanzado el límite máximo de ' . $maxUsers . ' usuarios permitidos por su licencia.');
+        // 3. Comparar y fallar si se ha alcanzado el límite.
+        if ($currentUserCount >= $userLimit) {
+            $fail("Ha alcanzado el límite de {$userLimit} usuarios permitido por su licencia.");
+        } elseif ($userLimit === 0) {
+            $fail('No tiene una licencia activa que permita agregar usuarios.');
         }
     }
 }

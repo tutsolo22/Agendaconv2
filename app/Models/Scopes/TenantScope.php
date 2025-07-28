@@ -9,16 +9,20 @@ use Illuminate\Support\Facades\Auth;
 
 class TenantScope implements Scope
 {
-    /**
-     * Apply the scope to a given Eloquent query builder.
-     */
     public function apply(Builder $builder, Model $model): void
     {
-        // Si el usuario está autenticado, tiene un tenant_id y NO es super_admin,
-        // entonces aplicamos el filtro.
-        // Esto asegura que los Super Admins puedan ver todos los registros.
-        if (Auth::check() && Auth::user()->tenant_id && !Auth::user()->is_super_admin) {
-            $builder->where($model->getTable() . '.tenant_id', Auth::user()->tenant_id);
+        // Si la aplicación se está ejecutando en la consola (ej: artisan), no aplicamos el scope.
+        if (app()->runningInConsole()) {
+            return;
+        }
+
+        // Esta es la lógica definitiva que rompe el ciclo.
+        // No preguntamos por el ROL, sino por la existencia de un tenant_id en el usuario autenticado.
+        // Un Super-Admin tiene tenant_id=NULL, por lo que el scope no se le aplicará.
+        // Un usuario de tenant SIEMPRE tiene un tenant_id, por lo que el scope se le aplicará.
+        // Esto es seguro porque Auth::id() y Auth::user()->tenant_id no dependen de otras consultas.
+        if (Auth::check() && $tenantId = Auth::user()->tenant_id) {
+            $builder->where($model->getTable() . '.tenant_id', $tenantId);
         }
     }
 }

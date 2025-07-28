@@ -255,3 +255,5 @@ Se desarrolló el panel de administración para los usuarios con el rol `Tenant-
 *   **Vistas**: Se crearon las vistas CRUD en `resources/views/tenant/sucursales/`.
 *   **Funcionalidad**: Permite a cada `Tenant-Admin` gestionar sus propias ubicaciones o sucursales de forma segura y aislada.
 
+---
+

@@ -2,9 +2,9 @@
 
 namespace App\Providers;
 
+use App\Http\View\Composers\LicensedModulesComposer;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use App\Http\View\Composers\LicensedModulesComposer;
 
 class ViewServiceProvider extends ServiceProvider
 {
@@ -21,11 +21,8 @@ class ViewServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Using class based composers...
-        // This composer will pass the licensed modules to the tenant admin navigation bar.
-        View::composer(
-            'components.layouts.admin-navigation',
-            LicensedModulesComposer::class
-        );
+        // Asocia el composer con la vista de navegación del tenant.
+        // Cada vez que se renderice 'layouts.navigation', el composer se ejecutará.
+        View::composer('layouts.navigation', LicensedModulesComposer::class);
     }
 }

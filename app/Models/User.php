@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Traits\TenantScoped;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,7 +13,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
         // Añadimos el Trait de Spatie para manejar Roles y Permisos
-    use HasFactory, Notifiable, HasRoles, TenantScoped;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -26,7 +25,6 @@ class User extends Authenticatable
         'email',
         'password',
         'tenant_id',
-        'is_super_admin',
     ];
 
     /**

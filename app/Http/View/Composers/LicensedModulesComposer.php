@@ -2,11 +2,10 @@
 
 namespace App\Http\View\Composers;
 
-use Illuminate\View\View;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Licencia;
-use Carbon\Carbon;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+use App\Models\User;
 
 class LicensedModulesComposer
 {
@@ -16,25 +15,32 @@ class LicensedModulesComposer
      * @param  \Illuminate\View\View  $view
      * @return void
      */
-    public function compose(View $view)
+    public function compose(View $view): void
     {
+        $user = Auth::user();
+        $isSuperAdmin = false;
+        $isTenantAdmin = false;
         $licensedModules = collect();
 
-        if (Auth::check()) {
-            /** @var \App\Models\User $user */
-            $user = Auth::user();
+        if ($user) {
+            $isSuperAdmin = $user->hasRole('Super-Admin');
+            $isTenantAdmin = $user->hasRole('Tenant-Admin');
 
-            if ($user->tenant_id) {
-                $licencias = Licencia::where('tenant_id', $user->tenant_id)
-                                     ->where('is_active', true)
-                                     ->whereDate('fecha_expiracion', '>', Carbon::now())
-                                     ->with('modulo')
-                                     ->get();
+            if ($isTenantAdmin) {
+                $tenantId = $user->tenant_id;
+                // Obtener todas las licencias activas y vigentes para el tenant
+                $licencias = Licencia::where('tenant_id', $tenantId)
+                    ->where('is_active', true)
+                    ->where('fecha_fin', '>', now())
+                    ->with('modulo') // Carga ansiosa para optimizar
+                    ->get();
 
-                $licensedModules = $licencias->map(fn ($licencia) => $licencia->modulo)->filter()->sortBy('nombre');
+                // Extraer solo los módulos únicos de las licencias
+                $licensedModules = $licencias->map->modulo->filter()->unique('id');
             }
         }
 
-        $view->with('licensedModules', $licensedModules);
+        // Pasamos todas las variables a la vista
+        $view->with(compact('licensedModules', 'isSuperAdmin', 'isTenantAdmin', 'user'));
     }
 }

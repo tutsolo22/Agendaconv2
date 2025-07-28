@@ -1,86 +1,65 @@
-<x-layouts.admin>
+<x-app-layout>
     <x-slot name="header">
-        <h2 class="h4 fw-bold">
-            {{ __('Nuevo Tenant') }}
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Crear Nuevo Tenant') }}
         </h2>
     </x-slot>
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>Información del Tenant y Administrador</span>
-            <a href="{{ route('admin.tenants.index') }}" class="btn btn-sm btn-secondary">
-                <i class="fa-solid fa-arrow-left"></i> Volver al listado
-            </a>
-        </div>
-        <div class="card-body">
-            {{-- Mostraremos los errores de validación aquí si los hubiera --}}
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+    <div class="py-12">
+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <form method="POST" action="{{ route('admin.tenants.store') }}">
+                        @csrf
 
-            <form action="{{ route('admin.tenants.store') }}" method="POST">
-                @csrf
-                
-                <h5 class="card-title mb-3 border-bottom pb-2">Datos del Tenant</h5>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="name" class="form-label">Nombre de la Empresa <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
-                        @error('name')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="domain" class="form-label">Dominio (subdominio) <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <input type="text" class="form-control @error('domain') is-invalid @enderror" id="domain" name="domain" value="{{ old('domain') }}" required>
-                            <span class="input-group-text">.{{ config('app.domain', 'localhost') }}</span>
+                        <!-- Tenant Details -->
+                        <div class="mb-6">
+                            <h3 class="text-lg font-medium text-gray-900">Detalles del Tenant</h3>
+                            <div class="mt-4">
+                                <x-input-label for="name" :value="__('Nombre del Tenant')" />
+                                <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus />
+                                <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                            </div>
                         </div>
-                        @error('domain')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                        <div class="form-text">Solo letras minúsculas, números y guiones. Sin espacios.</div>
-                    </div>
+
+                        <!-- Administrator Details -->
+                        <div class="border-t border-gray-200 pt-6">
+                            <h3 class="text-lg font-medium text-gray-900">Administrador del Tenant</h3>
+                            <p class="mt-1 text-sm text-gray-600">Este será el usuario principal para gestionar el tenant.</p>
+
+                            <div class="mt-4">
+                                <x-input-label for="admin_name" :value="__('Nombre del Administrador')" />
+                                <x-text-input id="admin_name" class="block mt-1 w-full" type="text" name="admin_name" :value="old('admin_name')" required />
+                                <x-input-error :messages="$errors->get('admin_name')" class="mt-2" />
+                            </div>
+
+                            <div class="mt-4">
+                                <x-input-label for="admin_email" :value="__('Email del Administrador')" />
+                                <x-text-input id="admin_email" class="block mt-1 w-full" type="email" name="admin_email" :value="old('admin_email')" required />
+                                <x-input-error :messages="$errors->get('admin_email')" class="mt-2" />
+                            </div>
+
+                            <div class="mt-4">
+                                <x-input-label for="admin_password" :value="__('Contraseña')" />
+                                <x-text-input id="admin_password" class="block mt-1 w-full" type="password" name="admin_password" required />
+                                <x-input-error :messages="$errors->get('admin_password')" class="mt-2" />
+                            </div>
+
+                            <div class="mt-4">
+                                <x-input-label for="admin_password_confirmation" :value="__('Confirmar Contraseña')" />
+                                <x-text-input id="admin_password_confirmation" class="block mt-1 w-full" type="password" name="admin_password_confirmation" required />
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end mt-6">
+                            <a href="{{ route('admin.tenants.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
+                            <x-primary-button>
+                                {{ __('Crear Tenant') }}
+                            </x-primary-button>
+                        </div>
+                    </form>
                 </div>
-
-                <hr class="my-4">
-
-                <h5 class="card-title mb-3 border-bottom pb-2">Datos del Usuario Administrador del Tenant</h5>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="user_name" class="form-label">Nombre del Administrador <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('user_name') is-invalid @enderror" id="user_name" name="user_name" value="{{ old('user_name') }}" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="user_email" class="form-label">Email del Administrador <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control @error('user_email') is-invalid @enderror" id="user_email" name="user_email" value="{{ old('user_email') }}" required>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="password" class="form-label">Contraseña <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control @error('password') is-invalid @enderror" id="password" name="password" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="password_confirmation" class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
-                        <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
-                    </div>
-                </div>
-
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Guardar Tenant</button>
-                    <a href="{{ route('admin.tenants.index') }}" class="btn btn-secondary">Cancelar</a>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
-</x-layouts.admin>
+</x-app-layout>

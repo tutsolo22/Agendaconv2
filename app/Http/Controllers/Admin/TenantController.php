@@ -3,105 +3,109 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\RedirectResponse;
+use App\Http\Requests\Admin\StoreTenantRequest;
 use App\Models\Tenant;
-use App\Models\Modulo;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class TenantController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index(): View
     {
-        $tenants = Tenant::latest()->paginate(10);
-
+        // Cargamos los tenants y su primer usuario (el admin) para mostrar en la tabla.
+        $tenants = Tenant::with('users')->latest()->paginate(10);
         return view('admin.tenants.index', compact('tenants'));
     }
-     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+
+    public function create(): View
     {
         return view('admin.tenants.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreTenantRequest $request): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'id' => 'required|string|max:255|unique:tenants', // 'id' se usa a menudo para el subdominio
-        ]);
+        // Usamos una transacción para asegurar la integridad de los datos.
+        // Si falla la creación del usuario, se revierte la creación del tenant.
+        DB::transaction(function () use ($request) {
+            // 1. Crear el Tenant
+            $tenant = Tenant::create([
+                'name' => $request->input('name'),
+                // El ID se puede generar automáticamente o basarse en el nombre.
+                // Por simplicidad, lo dejamos autoincremental por ahora.
+            ]);
 
-        Tenant::create($validatedData);
+            // 2. Crear el usuario Administrador para este Tenant
+            $adminUser = $tenant->users()->create([
+                'name' => $request->input('admin_name'),
+                'email' => $request->input('admin_email'),
+                'password' => Hash::make($request->input('admin_password')),
+            ]);
 
-        return redirect()->route('admin.tenants.index')->with('success', 'Tenant creado exitosamente.');
-    }
-    public function assignModules(Tenant $tenant): View
-    {
-        $modulos = Modulo::all();
-        $tenantModulos = $tenant->modulos->pluck('id')->toArray(); // Modulos asignados actualmente
-
-        return view('admin.tenants.assign_modules', compact('tenant', 'modulos', 'tenantModulos'));
-    }
-
-    public function updateAssignedModules(Request $request, Tenant $tenant): RedirectResponse
-    {
-        $tenant->modulos()->sync($request->input('modulos', [])); // Sincroniza los módulos asignados
+            // 3. Asignar el rol de 'Tenant-Admin'
+            $tenantAdminRole = Role::where('name', 'Tenant-Admin')->first();
+            if ($tenantAdminRole) {
+                $adminUser->assignRole($tenantAdminRole);
+            }
+        });
 
         return redirect()->route('admin.tenants.index')
-                        ->with('success', 'Módulos asignados actualizados correctamente.');
+            ->with('success', 'Tenant y administrador creados exitosamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Tenant $tenant)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Tenant $tenant): View
     {
-        return view('admin.tenants.edit', compact('tenant'));
+        // Cargamos el primer usuario (admin) para pre-rellenar el formulario de edición.
+        $admin = $tenant->users()->first();
+        return view('admin.tenants.edit', compact('tenant', 'admin'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Tenant $tenant): RedirectResponse
+    public function update(StoreTenantRequest $request, Tenant $tenant): RedirectResponse
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'id' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('tenants')->ignore($tenant->id),
-            ],
-        ]);
+        DB::transaction(function () use ($request, $tenant) {
+            // Actualizar datos del Tenant
+            $tenant->update([
+                'name' => $request->input('name'),
+            ]);
 
-        $tenant->update($validatedData);
+            // Actualizar datos del Administrador del Tenant
+            $admin = $tenant->users()->first();
+            if ($admin) {
+                $adminData = [
+                    'name' => $request->input('admin_name'),
+                    'email' => $request->input('admin_email'),
+                ];
+                // Solo actualizar la contraseña si se proporciona una nueva
+                if ($request->filled('admin_password')) {
+                    $adminData['password'] = Hash::make($request->input('admin_password'));
+                }
+                $admin->update($adminData);
+            }
+        });
 
-        return redirect()->route('admin.tenants.index')->with('success', 'Tenant actualizado exitosamente.');
+        return redirect()->route('admin.tenants.index')
+            ->with('success', 'Tenant actualizado exitosamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Tenant $tenant): RedirectResponse
     {
-        $tenant->delete();
+        // Usamos una transacción para garantizar que toda la eliminación sea atómica.
+        // Si algo falla, se revierte toda la operación.
+        DB::transaction(function () use ($tenant) {
+            // Eliminar recursos relacionados que dependen del tenant.
+            // La arquitectura menciona licencias, por lo que es un buen candidato.
+            // Asegúrate de que la relación `licencias()` exista en el modelo Tenant.
+            $tenant->licencias()->delete();
+            // Eliminar usuarios asociados al tenant.
+            $tenant->users()->delete();
+            // Finalmente, eliminar el tenant.
+            $tenant->delete();
+        });
 
-        return redirect()->route('admin.tenants.index')->with('success', 'Tenant eliminado exitosamente.');
+        return redirect()->route('admin.tenants.index')
+            ->with('success', 'Tenant eliminado exitosamente.');
     }
 }

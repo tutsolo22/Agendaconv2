@@ -18,7 +18,7 @@ Route::middleware('guest')->group(function () {
     // Esto permite crear el primer usuario en una instalación nueva,
     // pero deshabilita el registro público después.
     // El chequeo de Schema::hasTable es para evitar errores durante las migraciones.
-    if (Schema::hasTable('users') && ! User::where('is_super_admin', true)->exists()) {
+    if (Schema::hasTable('users') && Schema::hasTable('roles') && !User::whereHas('roles', fn($q) => $q->where('name', 'Super-Admin'))->exists()) {
         Route::get('register', [RegisteredUserController::class, 'create'])
             ->name('register');
         Route::post('register', [RegisteredUserController::class, 'store']);

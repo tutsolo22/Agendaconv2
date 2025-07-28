@@ -28,20 +28,26 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        /** @var \App\Models\User $user */
+        // <<--- INICIO DE LA LÓGICA DE REDIRECCIÓN ---<<
         $user = $request->user();
 
-        // Si es Super Admin, va al panel de admin.
-        if ($user->is_super_admin || $user->hasRole('Super-Admin')) {
+        if ($user->hasRole('Super-Admin')) {
             return redirect()->intended(route('admin.dashboard'));
         }
 
-        // Si es Tenant Admin, va al panel de tenant.
         if ($user->hasRole('Tenant-Admin')) {
             return redirect()->intended(route('tenant.dashboard'));
         }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Si hay otros roles, puedes añadir más condiciones aquí.
+        // Por ejemplo, un 'Tenant-User' podría ir al mismo dashboard del tenant.
+        if ($user->tenant_id) {
+            return redirect()->intended(route('tenant.dashboard'));
+        }
+
+        // Fallback por si un usuario no tiene un rol esperado.
+        return redirect()->intended(route('dashboard'));
+        // <<--- FIN DE LA LÓGICA DE REDIRECCIÓN ---<<
     }
 
     /**

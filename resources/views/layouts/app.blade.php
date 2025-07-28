@@ -32,5 +32,25 @@
                 {{ $slot }}
             </main>
         </div>
+            ...
+    {{-- Tu código de layout existente --}}
+
+    <script>
+        function slugify(text) {
+            if (!text) return '';
+            const a = 'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;'
+            const b = 'aaaaaaaaaacccddeeeeeeeegghiiiiiilmnnnnoooooooooprrssssssttuuuuuuuuuwxyyzzz------'
+            const p = new RegExp(a.split('').join('|'), 'g')
+
+            return text.toString().toLowerCase()
+                .replace(/\s+/g, '-') // Reemplaza espacios con -
+                .replace(p, c => b.charAt(a.indexOf(c))) // Reemplaza caracteres especiales
+                .replace(/&/g, '-and-') // Reemplaza & con 'and'
+                .replace(/[^\w\-]+/g, '') // Elimina todos los caracteres que no son palabras
+                .replace(/\-\-+/g, '-') // Reemplaza múltiples - con uno solo
+                .replace(/^-+/, '') // Elimina guiones al inicio
+                .replace(/-+$/, '') // Elimina guiones al final
+        }
+    </script>
     </body>
 </html>

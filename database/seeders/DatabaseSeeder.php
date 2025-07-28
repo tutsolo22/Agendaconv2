@@ -21,19 +21,25 @@ class DatabaseSeeder extends Seeder
         $this->call(RolesAndModulesSeeder::class);
 
         // Crear el usuario Super-Admin
-        $superAdmin = User::create([
-            'name' => 'Super-Admin',
-            'email' => 'superadmin@agendacon.com',
-            'password' => Hash::make('password'), // Cambiar en producción
-            'is_super_admin' => true,
-            'tenant_id' => null, // Los Super-Admins no pertenecen a un tenant
-        ]);
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'superadmin@agendacon.com'],
+            [
+                'name' => 'Super-Admin',
+                'password' => Hash::make('password'), // Cambiar en producción
+                'is_super_admin' => true,
+                'tenant_id' => null, // Los Super-Admins no pertenecen a un tenant
+            ]
+        );
 
         // Asignar el rol de Super-Admin
-        // Usamos 'first' porque sabemos que el seeder anterior ya lo creó.
         $superAdminRole = Role::where('name', 'Super-Admin')->first();
         if ($superAdminRole) {
             $superAdmin->assignRole($superAdminRole);
+        }
+
+        // Llamar al seeder de datos de prueba si no estamos en producción
+        if (app()->environment() !== 'production') {
+            $this->call(TestDataSeeder::class);
         }
     }
 }

@@ -5,12 +5,22 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Sucursal;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class SucursalController extends Controller
 {
-    /**
+    public function __construct()
+    {
+        // Proteger las rutas con los permisos que ya definimos en el seeder.
+        // Esto asegura que solo los usuarios con el rol 'Tenant-Admin' puedan acceder.
+        $this->middleware('can:tenant.sucursales.index')->only('index');
+        $this->middleware('can:tenant.sucursales.create')->only(['create', 'store']);
+        $this->middleware('can:tenant.sucursales.edit')->only(['edit', 'update']);
+        $this->middleware('can:tenant.sucursales.destroy')->only('destroy');
+    }
+
+    /*
      * Display a listing of the resource.
      */
     public function index(): View

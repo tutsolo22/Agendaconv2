@@ -1,16 +1,17 @@
-<x-layouts.admin>
+<x-app-layout>
     <x-slot name="header">
-        <h2 class="h4 fw-bold">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             {{ __('Dashboard') }}
         </h2>
     </x-slot>
 
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">¡Bienvenido al panel de administración de tu empresa!</h5>
-            <p class="card-text">
-                Desde aquí podrás gestionar los módulos que tienes contratados y a tus usuarios.
-            </p>
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 text-gray-900">
+                    {{ __("¡Bienvenido a tu panel de administración!") }}
+                </div>
+            </div>
         </div>
     </div>
-</x-layouts.admin>
+</x-app-layout>

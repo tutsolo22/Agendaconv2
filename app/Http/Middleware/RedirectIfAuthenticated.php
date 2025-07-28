@@ -19,16 +19,18 @@ class RedirectIfAuthenticated
         $guards = empty($guards) ? [null] : $guards;
 
         foreach ($guards as $guard) {
-            if (Auth::guard($guard)->check()) {
-                $user = Auth::guard($guard)->user();
-
-                // Si es Super-Admin, redirigir al dashboard de administración.
-                if ($user->is_super_admin) {
+            // Esta es la forma segura de verificar y obtener el usuario en un solo paso.
+            // Evita el problema de que check() sea true pero user() devuelva null.
+            if ($user = Auth::guard($guard)->user()) {
+                if ($user->hasRole('Super-Admin')) {
                     return redirect()->route('admin.dashboard');
                 }
 
-                // Para otros usuarios, redirigir al dashboard normal.
-                return redirect()->route('dashboard');
+                if ($user->tenant_id) {
+                    return redirect()->route('tenant.dashboard');
+                }
+
+                return redirect()->route('dashboard'); // Fallback
             }
         }
 

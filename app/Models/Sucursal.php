@@ -12,6 +12,16 @@ class Sucursal extends Model
     use HasFactory, TenantScoped;
 
     /**
+     * The table associated with the model.
+     *
+     * By default, Laravel will look for the English plural 'sucursals'.
+     * We need to specify the correct Spanish plural table name 'sucursales'.
+     *
+     * @var string
+     */
+    protected $table = 'sucursales';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>

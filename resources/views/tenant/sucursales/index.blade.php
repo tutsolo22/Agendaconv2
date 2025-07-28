@@ -40,7 +40,7 @@
                     <tbody>
                         @forelse ($sucursales as $sucursal)
                             <tr>
-                                <td>{{ $sucursal->name }}</td>
+                                <td>{{ $sucursal->nombre }}</td>
                                 <td>{{ $sucursal->direccion ?? 'N/A' }}</td>
                                 <td>{{ $sucursal->telefono ?? 'N/A' }}</td>
                                 <td>

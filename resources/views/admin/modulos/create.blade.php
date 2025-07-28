@@ -1,37 +1,19 @@
-<x-layouts.admin>
+<x-app-layout>
     <x-slot name="header">
-        <h2 class="h4 fw-bold">
-            {{ __('Crear Módulo') }}
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Crear Nuevo Módulo') }}
         </h2>
     </x-slot>
 
-    <div class="card">
-        <div class="card-body">
-            <form action="{{ route('admin.modulos.store') }}" method="POST">
-                @csrf
-                <div class="mb-3">
-                    <label for="nombre" class="form-label">Nombre del Módulo</label>
-                    <input type="text" name="nombre" id="nombre" class="form-control @error('nombre') is-invalid @enderror" value="{{ old('nombre') }}" placeholder="Ej: Facturación" required>
-                    @error('nombre') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    <div class="py-12">
+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <form method="POST" action="{{ route('admin.modulos.store') }}">
+                        @include('admin.modulos._form', ['submitText' => 'Crear Módulo'])
+                    </form>
                 </div>
-                <div class="mb-3">
-                    <label for="descripcion" class="form-label">Descripción</label>
-                    <textarea name="descripcion" id="descripcion" rows="3" class="form-control @error('descripcion') is-invalid @enderror">{{ old('descripcion') }}</textarea>
-                    @error('descripcion') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                </div>
-                <div class="mb-3">
-                    <label for="is_active" class="form-label">Estado</label>
-                    <select name="is_active" id="is_active" class="form-select @error('is_active') is-invalid @enderror">
-                        <option value="1" {{ old('is_active', 1) == 1 ? 'selected' : '' }}>Activo</option>
-                        <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Inactivo</option>
-                    </select>
-                    @error('is_active') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                </div>
-                <div class="d-flex justify-content-end">
-                    <a href="{{ route('admin.modulos.index') }}" class="btn btn-secondary me-2">Cancelar</a>
-                    <button type="submit" class="btn btn-primary">Guardar Módulo</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
-</x-layouts.admin>
+</x-app-layout>

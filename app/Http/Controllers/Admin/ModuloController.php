@@ -3,109 +3,66 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreModuloRequest;
+use App\Http\Requests\Admin\UpdateModuloRequest;
 use App\Models\Modulo;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class ModuloController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    public function index(): View
     {
         $modulos = Modulo::latest()->paginate(10);
         return view('admin.modulos.index', compact('modulos'));
     }
 
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function create(): View
     {
-        return view('admin.modulos.create');
+        // Pasamos un modelo vacío con valores por defecto para estandarizar el formulario.
+        $modulo = new Modulo(['is_active' => true]);
+        return view('admin.modulos.create', compact('modulo'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
+    public function store(StoreModuloRequest $request): RedirectResponse
     {
-        $request->validate([
-            'nombre'      => 'required|string|max:255|unique:modulos',
-            'descripcion' => 'nullable|string',
-            'is_active'   => 'required|boolean',
-        ]);
+        $data = $request->validated();
+        // El checkbox no se envía si no está marcado, así que lo manejamos explícitamente.
+        $data['is_active'] = $request->has('is_active');
 
-        Modulo::create($request->all());
+        Modulo::create($data);
 
         return redirect()->route('admin.modulos.index')
-                         ->with('success', 'Módulo creado exitosamente.');
+            ->with('success', 'Módulo creado exitosamente.');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Modulo  $modulo
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Modulo $modulo)
+    public function edit(Modulo $modulo): View
     {
-        return view('admin.modulos.show', compact('modulo'));
+        return view('admin.modulos.edit', compact('modulo'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Modulo  $modulo
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Modulo $modulo)
+    public function update(UpdateModuloRequest $request, Modulo $modulo): RedirectResponse
     {
-        return view('admin.modulos.show', compact('modulo'));
-    }
-    
+        $data = $request->validated();
+        $data['is_active'] = $request->has('is_active');
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Modulo  $modulo
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Modulo $modulo)
-    {
-       $request->validate([
-            'nombre'      => ['required', 'string', 'max:255', Rule::unique('modulos')->ignore($modulo->id)],
-            'descripcion' => 'nullable|string',
-            'is_active'   => 'required|boolean',
-        ]);
-
-        $modulo->update($request->all());
+        $modulo->update($data);
 
         return redirect()->route('admin.modulos.index')
-                         ->with('success', 'Módulo actualizado exitosamente.');
+            ->with('success', 'Módulo actualizado exitosamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Modulo  $modulo
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Modulo $modulo)
+    public function destroy(Modulo $modulo): RedirectResponse
     {
+        // **Regla de seguridad:** Prevenir la eliminación si el módulo está en uso.
+        // Para que esto funcione, asegúrate de que tu modelo Modulo tiene la relación `licencias()`.
+        if ($modulo->licencias()->exists()) {
+            return back()->with('error', 'No se puede eliminar el módulo porque tiene licencias asociadas.');
+        }
+
         $modulo->delete();
 
         return redirect()->route('admin.modulos.index')
-                         ->with('success', 'Módulo eliminado exitosamente.');
+            ->with('success', 'Módulo eliminado exitosamente.');
     }
 }

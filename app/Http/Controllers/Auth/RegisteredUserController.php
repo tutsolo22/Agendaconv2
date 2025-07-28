@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,19 +45,24 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            //Si es el primer usuario, asignamos el rol de Super-Admin.
-            'is_super_admin' => $isFirstUser,
         ]);
+
+        // Si es el primer usuario, también le asignamos el rol de Spatie.
+        // Esto es crucial para que el middleware 'role:Super-Admin' funcione.
+        if ($isFirstUser) {
+            $superAdminRole = Role::firstOrCreate(['name' => 'Super-Admin', 'guard_name' => 'web']);
+            $user->assignRole($superAdminRole);
+        }
 
         event(new Registered($user));
 
         Auth::login($user);
 
         // Si el usuario recién creado es un Super-Admin, lo redirigimos a su panel
-    if ($user->is_super_admin) {
-        return redirect()->route('admin.dashboard');
-    }
+        if ($user->hasRole('Super-Admin')) {
+            return redirect()->route('admin.dashboard');
+        }
  
-    return redirect(route('dashboard', absolute: false));
+        return redirect(route('dashboard', absolute: false));
     }
 }
