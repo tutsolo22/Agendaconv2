@@ -1,15 +1,15 @@
 <x-layouts.app>
     <x-slot name="header">
         <h2 class="h4 fw-bold">
-            {{ __('Editar Módulo') }}: {{ $modulo->nombre }}
+            {{ __('Editar Tenant') }}: {{ $tenant->name }}
         </h2>
     </x-slot>
 
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="{{ route('admin.modulos.update', $modulo) }}">
+            <form method="POST" action="{{ route('admin.tenants.update', $tenant) }}">
                 @method('PUT')
-                @include('admin.modulos._form', ['submitText' => __('Actualizar Módulo')])
+                @include('admin.tenants._form', ['submitText' => __('Actualizar Tenant')])
             </form>
         </div>
     </div>

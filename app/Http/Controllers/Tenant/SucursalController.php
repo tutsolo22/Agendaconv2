@@ -4,25 +4,12 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sucursal;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class SucursalController extends Controller
 {
-    public function __construct()
-    {
-        // Proteger las rutas con los permisos que ya definimos en el seeder.
-        // Esto asegura que solo los usuarios con el rol 'Tenant-Admin' puedan acceder.
-        $this->middleware('can:tenant.sucursales.index')->only('index');
-        $this->middleware('can:tenant.sucursales.create')->only(['create', 'store']);
-        $this->middleware('can:tenant.sucursales.edit')->only(['edit', 'update']);
-        $this->middleware('can:tenant.sucursales.destroy')->only('destroy');
-    }
-
-    /*
-     * Display a listing of the resource.
-     */
     public function index(): View
     {
         // El TenantScope filtra automáticamente las sucursales.
@@ -30,69 +17,56 @@ class SucursalController extends Controller
         return view('tenant.sucursales.index', compact('sucursales'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(): View
     {
-        return view('tenant.sucursales.create');
+        $sucursal = new Sucursal(['is_active' => true]);
+        return view('tenant.sucursales.create', compact('sucursal'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'direccion' => 'nullable|string|max:255',
-            'telefono' => 'nullable|string|max:20',
-            'is_active' => 'required|boolean',
+            'telefono' => 'nullable|string|max:50',
         ]);
 
-        // El Trait TenantScoped se encarga de añadir el tenant_id.
-        Sucursal::create($validated);
+        $data['is_active'] = $request->has('is_active');
+        // El trait TenantScoped asignará el tenant_id automáticamente.
+        Sucursal::create($data);
 
         return redirect()->route('tenant.sucursales.index')->with('success', 'Sucursal creada exitosamente.');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Sucursal $sucursal): View
     {
-        // El Route-Model Binding con el TenantScope asegura que solo se pueda editar
-        // una sucursal del tenant actual.
+        // El TenantScope ya previene que un tenant edite sucursales de otro.
         return view('tenant.sucursales.edit', compact('sucursal'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Sucursal $sucursal): RedirectResponse
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'nombre' => 'required|string|max:255',
             'direccion' => 'nullable|string|max:255',
-            'telefono' => 'nullable|string|max:20',
-            'is_active' => 'required|boolean',
+            'telefono' => 'nullable|string|max:50',
         ]);
 
-        $sucursal->update($validated);
+        $data['is_active'] = $request->has('is_active');
+        $sucursal->update($data);
 
         return redirect()->route('tenant.sucursales.index')->with('success', 'Sucursal actualizada exitosamente.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Sucursal $sucursal): RedirectResponse
     {
-        try {
-            $sucursal->delete();
-            return redirect()->route('tenant.sucursales.index')->with('success', 'Sucursal eliminada exitosamente.');
-        } catch (\Exception $e) {
-            return redirect()->route('tenant.sucursales.index')->with('error', 'No se pudo eliminar la sucursal. Es posible que tenga datos asociados.');
+        // Regla de negocio: No permitir borrar si tiene usuarios asignados.
+        if ($sucursal->users()->exists()) {
+            return back()->with('error', 'No se puede eliminar la sucursal porque tiene usuarios asignados.');
         }
+
+        $sucursal->delete();
+
+        return redirect()->route('tenant.sucursales.index')->with('success', 'Sucursal eliminada exitosamente.');
     }
 }

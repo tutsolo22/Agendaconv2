@@ -47,15 +47,35 @@ class RolesAndModulesSeeder extends Seeder
 
         // --- 4. Crear Módulos del Sistema ---
         $modulos = [
-            ['nombre' => 'Restaurante', 'descripcion' => 'Gestión de mesas, menús y pedidos.', 'icono' => 'fa-utensils', 'is_active' => true],
-            ['nombre' => 'Facturacion CFDI v4', 'descripcion' => 'Emisión de facturas electrónicas CFDI 4.0.', 'icono' => 'fa-file-invoice-dollar', 'is_active' => true],
-            ['nombre' => 'Citas Medicas', 'descripcion' => 'Agendamiento y gestión de citas para consultorios.', 'icono' => 'fa-calendar-check', 'is_active' => true],
-            
+            [
+                'nombre' => 'Citas Medicas',
+                'slug' => 'citas-medicas',
+                'route_name' => 'tenant.citas.index', // Nombre de ruta de ejemplo
+                'descripcion' => 'Agendamiento y gestión de citas para consultorios.',
+                'icono' => 'fa-solid fa-calendar-check',
+                'is_active' => true
+            ],
+            [
+                'nombre' => 'Restaurante',
+                'slug' => 'restaurante',
+                'route_name' => 'tenant.restaurante.index', // Nombre de ruta de ejemplo
+                'descripcion' => 'Gestión de mesas, menús y pedidos.',
+                'icono' => 'fa-solid fa-utensils',
+                'is_active' => true
+            ],
+            [
+                'nombre' => 'Facturacion CFDI v4',
+                'slug' => 'facturacion-cfdi-v4',
+                'route_name' => 'tenant.facturacion.index', // Nombre de ruta de ejemplo
+                'descripcion' => 'Emisión de facturas electrónicas CFDI 4.0.',
+                'icono' => 'fa-solid fa-file-invoice-dollar',
+                'is_active' => true
+            ],
         ];
 
-        foreach ($modulos as $modulo) {
-            
-            Modulo::firstOrCreate(['nombre' => $modulo['nombre']], $modulo);
+        foreach ($modulos as $moduloData) {
+            // Usamos el slug como identificador único para evitar duplicados
+            Modulo::firstOrCreate(['slug' => $moduloData['slug']], $moduloData);
         }
     }
 }

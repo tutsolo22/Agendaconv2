@@ -1,259 +1,193 @@
 # Documentación del Proyecto - Agendacon v2
 
-Este documento detalla el proceso de instalación, configuración y puesta en marcha del proyecto Agendacon v2, construido sobre Laravel 12.
+Este documento detalla el proceso de instalación, configuración y puesta en marcha del proyecto Agendacon v2, construido sobre Laravel.
 
 ---
 
-## 1. Configuración del Entorno de Desarrollo (Windows)
+## 1. PRINCIPIOS FUNDAMENTALES
 
-Para poder ejecutar herramientas de desarrollo como `npm` en la terminal de Windows (PowerShell), es necesario ajustar la política de ejecución de scripts.
+*   **Framework Backend:** Laravel 11/12.
+*   **Stack Frontend:** Laravel Breeze con Blade, **Bootstrap 5** y Vite.
+*   **Arquitectura General:** Multi-Tenant, Multi-Módulo, Multi-Sucursal.
+*   **Modelo de Base de Datos:** **BASE DE DATOS ÚNICA**. Toda la información de todos los tenants y módulos reside en una sola base de datos. Esta decisión simplifica el mantenimiento, los respaldos y la gestión general.
+*   **Separación de Datos (Tenancy):** La separación de datos entre tenants se logra estrictamente a través de una columna `tenant_id` en cada tabla relevante.
+*   **Licenciamiento de Módulos:** El acceso a los módulos se controla mediante una tabla `licencias` que vincula `tenants`, `modulos`, y define fechas de expiración, límites de usuarios, etc.
 
-1.  **Abrir PowerShell como Administrador**:
-    *   Buscar "PowerShell" en el menú de inicio, clic derecho y "Ejecutar como administrador".
+## 2. ESTRUCTURA DE LA BASE DE DATOS (REGLAS DE ORO)
 
-2.  **Establecer la Política de Ejecución**:
-    *   Ejecutar el siguiente comando para permitir la ejecución de scripts locales firmados remotamente.
+Las tablas se clasifican en tres categorías principales:
 
-    ```powershell
-    Set-ExecutionPolicy RemoteSigned
-    ```
-    *   Confirmar la acción presionando `Y` (o `S`) y Enter.
+**A) Tablas Centrales del Sistema:**
+   - **Propósito:** Administran la aplicación en su conjunto. No pertenecen a ningún tenant.
+   - **Ejemplos:** `tenants`, `modulos`, `licencias`, `licencia_historial`, `users` (para Super-Admins).
+   - **Regla:** Estas tablas **NO DEBEN** tener una columna `tenant_id`.
 
----
+**B) Tablas de Recursos del Tenant (Compartidas entre Módulos):**
+   - **Propósito:** Contienen entidades que pertenecen a un tenant y pueden ser utilizadas por diferentes módulos de ese mismo tenant.
+   - **Ejemplos:** `clientes` (del tenant), `pacientes` (del tenant), `proveedores`, `inventario_general`, `sucursales`.
+   - **Regla:** Estas tablas **DEBEN** tener una columna `tenant_id`, pero **NO DEBEN** tener una columna `modulo_id`.
 
-## 2. Instalación y Configuración del Proyecto
+**C) Tablas Transaccionales o de Configuración de Módulo Específico:**
+   - **Propósito:** Contienen registros de operaciones o configuraciones que son exclusivas de un módulo específico dentro de un tenant.
+   - **Sugerencia de Nomenclatura:** Prefijar el nombre de la tabla con el nombre del módulo para mayor claridad (ej: `restaurante_notas`, `medicas_citas`).
+   - **Ejemplos:**
+     - Módulo Restaurante: `restaurante_notas`, `restaurante_gastos`, `restaurante_menus`.
+     - Módulo Citas Médicas: `medicas_citas`, `medicas_historiales_clinicos`.
+   - **Regla:** Estas tablas **DEBEN** tener una columna `tenant_id`. La columna `modulo_id` es opcional pero recomendada si la lógica del módulo lo requiere.
 
-### 2.1. Instalación de Laravel
+## 3. LÓGICA DE ACCESO A DATOS (AISLAMIENTO DE TENANTS)
 
-El proyecto se inicializó utilizando Composer con la última versión de Laravel (v12).
+*   **Global Scopes:** Para automatizar el aislamiento de datos, se implementó un **Global Scope** de Laravel.
+    *   **Scope**: `app/Models/Scopes/TenantScope.php`. Su lógica añade automáticamente la condición `WHERE tenant_id = ?` a todas las consultas de los modelos que lo usan.
+    *   **Trait**: `app/Traits/TenantScoped.php`. Este trait facilita la aplicación del `TenantScope` y asigna automáticamente el `tenant_id` del usuario autenticado al crear un nuevo registro.
+    *   **Lógica Clave**: El scope se activa únicamente si el usuario autenticado tiene un `tenant_id`. Esto excluye automáticamente al `Super-Admin` (cuyo `tenant_id` es `NULL`) del filtrado.
 
-```shell
-composer create-project laravel/laravel Agendaconv2
-```
+*   **Resolución de Dependencia Circular (Decisión Arquitectónica Crítica)**:
+    *   Durante el desarrollo, se detectó un error 500 recurrente causado por una **dependencia circular**: el sistema de autenticación intentaba cargar un usuario, lo que activaba el `TenantScope` en el modelo `User`, y este a su vez intentaba acceder al usuario que aún no estaba completamente cargado.
+    *   **Solución Definitiva**: Se determinó que el modelo `User` **no debe** usar el `TenantScoped` trait. El modelo de usuario es la fuente de verdad para la autenticación y no debe ser filtrado por un scope que dependa de sí mismo.
+    *   **Impacto**: El aislamiento de datos para los usuarios del tenant se realiza ahora **explícitamente en los controladores** (ej: `Tenant\UserController`) mediante cláusulas `where('tenant_id', ...)`. Esto rompe el ciclo y garantiza la estabilidad del sistema.
+    *   **Aplicación del Scope**: El trait `TenantScoped` se aplica a todos los demás modelos que pertenecen a un tenant, como `Licencia`, `Sucursal`, etc., pero **no** a `User`.
 
-### 2.2. Configuración del Archivo `.env`
+## 4. ARQUITECTURA FRONTEND
 
-Se realizaron ajustes clave en el archivo de entorno `.env` para personalizar la aplicación:
+*   **Iconografía:** Se utiliza **Font Awesome 6** para un set de iconos completo.
+*   **Asset Bundling:** Se usa **Vite**, la herramienta por defecto en Laravel, para la compilación y optimización de assets (CSS, JS).
+*   **Interactividad:** Se utiliza **Alpine.js** para añadir interactividad ligera en el frontend, como la generación automática de slugs en los formularios.
 
-*   **Nombre de la Aplicación**: Se cambió el nombre por defecto a "Agendacon".
-    ```dotenv
-    APP_NAME=Agendacon
-    ```
+## 5. COMPONENTES CLAVE Y SUGERENCIAS DE IMPLEMENTACIÓN
 
-*   **Localización en Español**: Se configuró la aplicación para que utilice el idioma español en sus componentes.
-    ```dotenv
-    APP_LOCALE=es
-    APP_FALLBACK_LOCALE=es
-    APP_FAKER_LOCALE=es_ES
-    ```
+*   **Roles y Permisos:**
+    - **Paquete:** Se utiliza `spatie/laravel-permission`.
+    - **Roles Definidos:** `Super-Admin`, `Tenant-Admin`, `Tenant-User` (y otros roles específicos de módulo si son necesarios).
+    - **Autorización**: Se implementaron **Gates** de Laravel (ej: `manage-tenant-user` en `AuthServiceProvider`) para autorizar explícitamente que un `Tenant-Admin` solo pueda editar o eliminar usuarios de su propio tenant.
 
-*   **Conexión a la Base de Datos**: Se definieron los parámetros para la conexión con la base de datos local en XAMPP.
-    ```dotenv
-    DB_CONNECTION=mysql
-    DB_HOST=127.0.0.1
-    DB_PORT=3306
-    DB_DATABASE=agendaconv2_db
-    DB_USERNAME=root
-    DB_PASSWORD=
-    ```
+*   **Auditoría de Movimientos:**
+    - **Sugerencia:** Utilizar el paquete `spatie/laravel-activitylog`.
+    - **Configuración:** Se configurará para registrar eventos (created, updated, deleted) en los modelos críticos. Guardará `user_id`, `ip_address`, y los datos modificados.
 
-### 2.3. Creación de la Base de Datos
+*   **Notificaciones:**
+    - **Implementación:** Usar el sistema de Notificaciones nativo de Laravel.
+    - **Canales:** Se configurarán canales para email y notificaciones dentro de la base de datos (para mostrar en la UI).
+    - **Colas de Trabajo (Queues):** Todas las notificaciones (especialmente por email) se enviarán a través de colas de trabajo para no retrasar la respuesta al usuario.
 
-Se creó la base de datos `agendaconv2_db` manualmente a través de **phpMyAdmin**, utilizando el cotejamiento `utf8mb4_unicode_ci` para una correcta compatibilidad de caracteres.
+*   **Facturación CFDI v4:**
+    - **Arquitectura:** Se creará un `Servicio` o `Action` en Laravel que encapsule la lógica de comunicación con el PAC (Proveedor Autorizado de Certificación).
+    - **Seguridad:** Las credenciales (CSD, llave, contraseña) y la clave del PAC se almacenarán de forma segura utilizando el sistema de cifrado de Laravel y se guardarán en variables de entorno (`.env`), nunca en la base de datos directamente.
 
----
-
-## 3. Configuración del Frontend (Vite + Bootstrap 5)
-
-Se reemplazó la configuración por defecto de Tailwind CSS por Bootstrap 5 y Font Awesome 6.
-
-### 3.1. Instalación de Dependencias
-
-Se instalaron las librerías necesarias a través de `npm`:
-
-```shell
-# Instalar Bootstrap y su dependencia Popper.js
-npm install bootstrap @popperjs/core
-
-# Instalar SASS (para compilar los estilos de Bootstrap) y Font Awesome
-npm install --save-dev sass @fortawesome/fontawesome-free
-```
-
-### 3.2. Configuración de Archivos de Assets
-
-1.  **`vite.config.js`**: Se actualizó el archivo de configuración de Vite para que apunte a los nuevos archivos de assets.
-
-2.  **`resources/scss/app.scss`**: Se creó este archivo para importar los estilos de Bootstrap y Font Awesome.
-
-3.  **`resources/js/app.js`**: Se modificó para importar el JavaScript de Bootstrap, necesario para sus componentes interactivos.
-
-### 3.3. Actualización de la Vista Principal
-
-Se modificó la vista `resources/views/welcome.blade.php` para:
-1.  Incluir la directiva `@vite()` que carga los assets compilados.
-2.  Añadir un código de prueba con clases de Bootstrap y un icono de Font Awesome para verificar que la configuración era correcta.
+*   **Generador de Licencias:**
+    - **Lógica:** Un panel de Super-Admin permite crear registros en la tabla `licencias`. Se genera un `codigo_licencia` único (UUID) que el tenant usará para activar sus módulos.
+    - **Flexibilidad:** La tabla `licencias` incluye campos para `fecha_fin`, `limite_usuarios`, etc., para permitir futuras ampliaciones del modelo de negocio.
 
 ---
 
-## 4. Ejecución del Proyecto
 
-Para trabajar en el proyecto, se deben ejecutar dos servidores de desarrollo en terminales separadas:
+*   **Reportes (Exportación y Gráficos):**
+    - **Exportación:**
+        - **Excel (xlsx, csv):** Paquete `maatwebsite/excel`.
+        - **PDF:** Paquete `barryvdh/laravel-dompdf` o `spatie/laravel-pdf`.
+    - **Gráficos:**
+        - **Sugerencia:** Utilizar una librería de JavaScript en el frontend como `Chart.js` o `ApexCharts`. El backend en Laravel solo proveerá los datos a través de endpoints de API.
 
-1.  **Servidor de Backend (Laravel)**:
-    ```shell
-    php artisan serve
-    ```
+*   **Impresión:**
+    - La "impresión fiscal" o a impresoras de tickets se maneja desde el navegador. El backend generará un HTML con el formato correcto (ticket) y el frontend invocará el diálogo de impresión del navegador (`window.print()`).
 
-2.  **Servidor de Frontend (Vite)**:
-    ```shell
-    npm run dev
-    ```
+*   **Extensibilidad Futura:**
+    - La arquitectura de `modulo_id` y tablas prefijadas está diseñada para que agregar un nuevo módulo (ej: `taller_mecanico`) solo requiera:
+        1.  Añadir un registro en la tabla `modulos`.
+        2.  Crear las nuevas migraciones para las tablas del módulo.
+        3.  Desarrollar los controladores, vistas y rutas correspondientes.
+        4.  Asignar la licencia del nuevo módulo a los tenants.
 
-La aplicación es accesible en la URL proporcionada por `php artisan serve` (generalmente `http://127.0.0.1:8000`).
+## 6. GUÍA DE DESARROLLO Y REFERENCIA
 
----
-
-## 5. Control de Versiones y Dependencias Adicionales
-
-### 5.1. Inicialización de Git
-
-Se inicializó un repositorio de Git para el control de versiones del proyecto y se realizó el primer commit para guardar el estado inicial de la configuración.
-
-```shell
-# Inicializar el repositorio
-git init
-
-# Añadir todos los archivos
-git add .
-
-# Realizar el primer commit
-git commit -m "Initial commit: Laravel 12, DB, and frontend setup"
-```
-
-### 5.2. Instalación de Paquetes de Spatie
-
-Se instalaron dos paquetes clave de Spatie para funcionalidades avanzadas:
-
-```shell
-# Para la gestión de Roles y Permisos
-composer require spatie/laravel-permission
-
-# Para el registro de actividad y auditoría
-composer require spatie/laravel-activitylog
-```
-## 6. Estructura de la Base de Datos (Fase 1)
-
-Se crearon los archivos de migración para definir las tablas centrales del sistema, siguiendo el plan de arquitectura.
-
-*   `create_tenants_table`: Para las empresas o clientes.
-*   `create_modulos_table`: Para los módulos del sistema (Restaurante, Facturación, etc.).
-*   `add_custom_fields_to_users_table`: Para añadir la relación con `tenants` y el rol de Super-Admin.
-*   `create_licencias_table`: Para gestionar las licencias de los tenants.
-*   `create_licencia_historial_table`: Para auditar los cambios en las licencias.
-
-Finalmente, se ejecutó el comando `php artisan migrate:fresh` para eliminar cualquier tabla preexistente y crear toda la estructura de la base de datos de forma limpia y ordenada, incluyendo las tablas por defecto de Laravel (`users`, `sessions`, etc.) y las nuevas tablas del sistema.
+*   **Gestión de la Base de Datos:** Toda la creación y modificación del esquema de la base de datos se realizará **exclusivamente a través de migraciones de Laravel**.
+*   **Seguridad:** Se seguirán las mejores prácticas de seguridad de Laravel por defecto (protección CSRF, XSS, validación estricta, ORM para prevenir inyección SQL).
 
 ---
 
-## 7. Implementación de Roles y Permisos
-
-Para gestionar el acceso de los usuarios a las diferentes partes del sistema, se configuró el paquete `spatie/laravel-permission`.
-
-1.  **Publicar Archivos del Paquete**: Se publicó el archivo de migración y el archivo de configuración del paquete.
-    ```shell
-    php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
-    ```
-2.  **Ejecutar Migración**: Se ejecutó la nueva migración para crear las tablas `roles`, `permissions`, y las tablas pivote correspondientes.
-    ```shell
-    php artisan migrate
-    ```
-3.  **Configurar Modelo User**: Se añadió el trait `HasRoles` al modelo `app/Models/User.php` para conectarlo con el sistema de permisos. Este paso se realizó durante la creación inicial de los modelos.
----
-
-## 8. CRUD del Super-Admin
+## 7. CRUD DEL SUPER-ADMIN
 
 Se implementaron las funcionalidades completas de Crear, Leer, Actualizar y Eliminar (CRUD) para los recursos centrales que gestiona el Super-Admin.
 
-### 8.1. Gestión de Módulos
+### 7.1. Gestión de Módulos
 
 *   **Controlador**: `app/Http/Controllers/Admin/ModuloController.php`
 *   **Rutas**: Se utilizó `Route::resource('modulos', ModuloController::class)` en `routes/web.php` dentro del grupo del admin.
-*   **Vistas**: Se crearon las vistas Blade en `resources/views/admin/modulos/` para el listado (`index`), creación (`create`) y edición (`edit`) de módulos.
-*   **Funcionalidad**: Permite al Super-Admin definir los módulos que estarán disponibles en el sistema, especificando su nombre, descripción, icono y estado.
+*   **Vistas**: Se crearon las vistas Blade en `resources/views/admin/modulos/`.
+*   **Funcionalidad**: Permite al Super-Admin definir los módulos que estarán disponibles en el sistema.
+*   **Funcionalidad Avanzada**:
+    *   Se añadieron los campos `slug` y `route_name` para permitir la generación de enlaces dinámicos en la navegación.
+    *   El formulario de creación/edición utiliza **Alpine.js** para generar automáticamente el `slug` a partir del nombre del módulo.
 
-### 8.2. Gestión de Licencias
+### 7.2. Gestión de Licencias
 
 *   **Controlador**: `app/Http/Controllers/Admin/LicenciaController.php`
 *   **Rutas**: Se habilitó el CRUD completo para las licencias.
-*   **Vistas**: Se crearon las vistas en `resources/views/admin/licencias/` para listar, crear y editar las licencias.
+*   **Vistas**: Se crearon las vistas en `resources/views/admin/licencias/`.
 *   **Funcionalidad**: Permite al Super-Admin asignar módulos a los tenants, definiendo reglas clave como la fecha de expiración, el número máximo de usuarios permitidos y si la licencia está activa.
 *   **Validación Clave**: Se implementó una regla de validación única (`Rule::unique`) para impedir que se asigne más de una licencia para el mismo módulo a un mismo tenant.
 
 ---
 
-## 9. Arquitectura de Tenant (Fase 2)
+## 8. ARQUITECTURA DE TENANT
 
-Se implementaron los pilares para el funcionamiento del sistema multi-tenant, garantizando la seguridad y el aislamiento de los datos.
+Se implementaron los pilares para el funcionamiento del sistema multi-tenant.
 
-### 9.1. Middleware de Verificación de Licencia
+### 8.1. Middleware de Verificación de Licencia
 
-*   **Archivo**: `app/Http/Middleware/CheckTenantLicense.php`
+*   **Archivo**: `app/Http/Middleware/CheckTenantLicense.php`.
 *   **Registro**: Se registró con el alias `tenant.license` en `bootstrap/app.php`.
-*   **Funcionamiento**:
-    1.  Intercepta las peticiones a rutas de módulos específicos (ej: `/tenant/module/Citas Medicas`).
-    2.  Verifica en la tabla `licencias` si el tenant del usuario autenticado tiene una licencia para ese módulo.
-    3.  Valida que la licencia esté activa y que la fecha de expiración no haya pasado.
-    4.  Si alguna condición falla, aborta la petición con un error 403 (Acceso denegado). De lo contrario, permite el acceso.
-*   **Uso**: Se aplica a las rutas de los módulos de la siguiente manera:
-    ```php
-    Route::get('/module/{moduleSlug}', ...)->middleware('tenant.license:{moduleSlug}');
-    ```
+*   **Funcionamiento**: Este middleware se aplica a las rutas del panel del tenant. Verifica si el tenant del usuario autenticado tiene **al menos una licencia activa y vigente**. Si no la tiene, aborta la petición con un error 403 (Acceso denegado), impidiendo el acceso al panel.
 
-### 9.2. Aislamiento Automático de Datos (Global Scope)
-
-Para garantizar que un tenant solo pueda acceder a sus propios datos, se implementó un Global Scope.
-
-*   **Scope**: `app/Models/Scopes/TenantScope.php`. Su lógica añade automáticamente la condición `WHERE tenant_id = ?` a todas las consultas de los modelos que lo usan, excepto para el Super-Admin.
-*   **Trait**: `app/Traits/TenantScoped.php`. Este trait facilita la aplicación del `TenantScope` y, muy importante, **asigna automáticamente el `tenant_id` del usuario autenticado al crear un nuevo registro**.
-*   **Aplicación**: Se añadió el trait `TenantScoped` a los modelos que pertenecen a un tenant, como `User`, `Sucursal` y `Licencia`.
-    ```php
-    use HasFactory, Notifiable, HasRoles, TenantScoped;
-    ```
-
----
-
-## 10. Panel del Tenant-Admin
+## 9. PANEL DEL TENANT-ADMIN
 
 Se desarrolló el panel de administración para los usuarios con el rol `Tenant-Admin`, dándoles autonomía para gestionar sus propios recursos.
 
-### 10.1. Dashboard y Navegación Dinámica
+### 9.1. Dashboard y Navegación Dinámica
 
 *   **Dashboard**: Se creó un controlador (`app/Http/Controllers/Tenant/DashboardController.php`) y una vista (`resources/views/tenant/dashboard.blade.php`) para servir como página de inicio del tenant.
-*   **Redirección al Login**: Se modificó `app/Http/Controllers/Auth/AuthenticatedSessionController.php` para redirigir a los usuarios con el rol `Tenant-Admin` a su dashboard (`/tenant/dashboard`) después de iniciar sesión.
+*   **Redirección al Login**: Se modificó `app/Http/Controllers/Auth/AuthenticatedSessionController.php` y el middleware `RedirectIfAuthenticated` para redirigir a los usuarios a su dashboard correspondiente (`admin.dashboard` o `tenant.dashboard`) según su rol.
 *   **Navegación Dinámica**: Para mostrar solo los módulos licenciados en la barra de navegación, se utilizó un **View Composer**.
-    *   **Composer**: `app/Http/View/Composers/LicensedModulesComposer.php` se encarga de consultar las licencias activas del tenant y pasar los módulos correspondientes a la vista.
-    *   **Service Provider**: `app/Providers/ViewServiceProvider.php` registra el composer para que se ejecute cada vez que se renderiza la vista de navegación.
-    *   **Vista**: `resources/views/components/layouts/admin-navigation.blade.php` fue actualizada para iterar sobre la variable `$licensedModules` y generar los enlaces del menú.
+    *   **Composer**: `app/Http/View/Composers/LicensedModulesComposer.php` se encarga de consultar las licencias activas del tenant y pasar a la vista no solo los módulos, sino también el objeto `$user` y variables booleanas como `$isSuperAdmin` y `$isTenantAdmin` para ser usadas en la navegación.
+    *   **Service Provider**: `app/Providers/ViewServiceProvider.php` registra el composer para que se ejecute en todas las vistas, asegurando que las variables estén siempre disponibles.
+    *   **Vista de Navegación Principal**: La barra de navegación principal de la aplicación se encuentra dentro del layout de componente `resources/views/components/layouts/app.blade.php`. Este archivo es el responsable de renderizar los menús tanto para el `Super-Admin` como para el `Tenant-Admin`. Utiliza las variables pasadas por el composer para mostrar dinámicamente los módulos licenciados y determinar el rol del usuario. (Nota: El archivo `resources/views/layouts/navigation.blade.php` es un remanente de la instalación inicial y está pendiente de ser eliminado).
 
-### 10.2. Gestión de Usuarios (CRUD)
+### 9.2. Gestión de Usuarios (CRUD)
 
 *   **Controlador**: `app/Http/Controllers/Tenant/UserController.php`.
-*   **Rutas**: Se añadió `Route::resource('users', TenantUserController::class)` al grupo de rutas del tenant.
+*   **Rutas**: Se añadió `Route::resource('users', ...)` al grupo de rutas del tenant.
 *   **Vistas**: Se crearon las vistas correspondientes en `resources/views/tenant/users/`.
 *   **Funcionalidad Clave (Límite de Licencia)**:
     1.  **Regla de Validación**: Se creó la regla personalizada `app/Rules/UserLimitPerTenant.php`.
-    2.  **Lógica**: Esta regla consulta la tabla `licencias` para encontrar el `max_usuarios` permitido para el tenant y lo compara con el número actual de usuarios.
-    3.  **Implementación**: Se aplica en el método `store` del `UserController`. Si el límite se ha alcanzado, la validación falla y se impide la creación del nuevo usuario.
-    4.  **UI/UX**: Las vistas se modificaron para mostrar un contador de usuarios (ej: `5 / 10`) y deshabilitar el botón de creación si se alcanza el límite.
+    2.  **Lógica**: Esta regla consulta la tabla `licencias` para sumar el `limite_usuarios` permitido para el tenant y lo compara con el número actual de usuarios.
+    3.  **Implementación**: Se aplica en el método `store` del `UserController`. Si el límite se ha alcanzado, la validación falla.
+    4.  **UI/UX**: Las vistas muestran un contador de usuarios (ej: `5 / 10`) y deshabilitan el botón de creación si se alcanza el límite.
 
-### 10.3. Gestión de Sucursales (CRUD)
-
-*   **Migración**: Se creó la migración para la tabla `sucursales` con su respectiva relación a `tenants`.
-*   **Modelo**: `app/Models/Sucursal.php`, utilizando el trait `TenantScoped` para el aislamiento de datos.
-*   **Controlador**: `app/Http/Controllers/Tenant/SucursalController.php`.
-*   **Rutas**: Se añadió `Route::resource('sucursales', SucursalController::class)` al grupo de rutas del tenant.
+### 9.3. Gestión de Sucursales (CRUD)
+*   **Migración**: Se creó la migración para la tabla `sucursales` con su respectiva relación a `tenants`. Se actualizó la tabla `users` para incluir una relación `sucursal_id`.
+*   **Modelo**: `app/Models/Sucursal.php`, utilizando el trait `TenantScoped` para el aislamiento automático de datos.
+*   **Controlador**: `app/Http/Controllers/Tenant/SucursalController.php` para manejar la lógica del CRUD.
+*   **Rutas**: Se añadió `Route::resource('sucursales', ...)` al grupo de rutas del tenant.
 *   **Vistas**: Se crearon las vistas CRUD en `resources/views/tenant/sucursales/`.
-*   **Funcionalidad**: Permite a cada `Tenant-Admin` gestionar sus propias ubicaciones o sucursales de forma segura y aislada.
+*   **Funcionalidad**: Permite a cada `Tenant-Admin` gestionar sus propias sucursales y asignar usuarios a ellas desde el CRUD de usuarios.
+
+### 9.4. Panel de Configuración
+*   **Propósito**: Permitir la personalización de la aplicación por cada tenant.
+*   **Controladores**:
+    *   `Tenant\ConfigurationController.php`: Gestiona la configuración para el tenant autenticado.
+    *   `Admin\ConfigurationController.php`: Permite al Super-Admin seleccionar cualquier tenant y modificar su configuración. Utiliza `tenancy()->initialize($tenant)` para cambiar temporalmente el contexto y acceder a los recursos del tenant seleccionado (como las sucursales).
+*   **Vistas**:
+    *   Se creó un formulario parcial reutilizable en `resources/views/partials/configuration_form.blade.php`.
+    *   Este parcial es incluido tanto por la vista del tenant (`tenant/configuration/index.blade.php`) como por la del admin (`admin/configuration/index.blade.php`).
+*   **Funcionalidad**: Permite configurar logos, eslóganes, datos para impresión, redes sociales y colores de la interfaz, con opciones tanto generales como específicas por sucursal.
 
 ---
 
+## 10. MÓDULOS DE LA APLICACIÓN
+
+### 10.1. Módulo de Facturación CFDI v4 (En Desarrollo)
+*   **Propósito**: Este módulo actúa como un servicio centralizado para la emisión de Comprobantes Fiscales Digitales por Internet (CFDI) en su versión 4.0. Está diseñado para ser consumido por otros módulos que requieran facturar sus operaciones (ej: una consulta médica, la venta en un restaurante).
+*   **Arquitectura**:
+    *   **Servicio Dedicado**: La lógica de comunicación con el Proveedor Autorizado de Certificación (PAC) se encapsulará en una clase de servicio (ej: `App\Services\FacturacionService`). Esto centraliza la lógica de timbrado, cancelación y consulta de CFDI.
+    *   **Seguridad de Credenciales**: Los Certificados de Sello Digital (CSD), llaves privadas y contraseñas se gestionarán de forma segura a través del sistema de cifrado de Laravel y se almacenarán como variables de entorno, nunca directamente en la base de datos.
+    *   **Tablas de Base de Datos**: Se crearán tablas específicas como `facturacion_cfdi` para almacenar un registro de las facturas emitidas (UUID, estado, etc.) y `facturacion_series_folios` para gestionar los consecutivos por sucursal.

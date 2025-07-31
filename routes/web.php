@@ -6,7 +6,8 @@ use App\Http\Controllers\Admin\LicenciaController;
 use App\Http\Controllers\Admin\ModuloController;
 use App\Http\Controllers\Admin\SuperAdminUserController;
 use App\Http\Controllers\Admin\TenantController;
-use App\Http\Conmtroller\Tenant\LicenciaHistorialController;
+use App\Http\Controllers\Tenant\LicenciaHistorialController;
+use App\Http\Controllers\Tenant\ConfigurationController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -31,10 +32,13 @@ Route::get('/dashboard', function () {
 // Grupo de rutas para el Super-Admin
 Route::middleware(['auth', 'role:Super-Admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
-    
     Route::resource('tenants', App\Http\Controllers\Admin\TenantController::class);
     Route::resource('modulos', App\Http\Controllers\Admin\ModuloController::class);
     Route::resource('licencias', App\Http\Controllers\Admin\LicenciaController::class);
+
+    // Rutas para el panel de configuración del Super-Admin
+    Route::get('configuration/{tenant?}', [App\Http\Controllers\Admin\ConfigurationController::class, 'index'])->name('configuration.index');
+    Route::post('configuration/{tenant}', [App\Http\Controllers\Admin\ConfigurationController::class, 'update'])->name('configuration.update');
 });
 
 // Grupo de rutas para el Tenant-Admin
@@ -47,7 +51,17 @@ Route::middleware(['auth', 'role:Tenant-Admin'])->prefix('tenant')->name('tenant
 
     // CRUD de Usuarios del Tenant
     Route::resource('users', App\Http\Controllers\Tenant\UserController::class);
-    // Route::resource('sucursales', App\Http\Controllers\Tenant\SucursalController::class);
+    Route::resource('sucursales', App\Http\Controllers\Tenant\SucursalController::class);
+    
+    // Rutas para el panel de configuración del Tenant
+    Route::get('configuration', [App\Http\Controllers\Tenant\ConfigurationController::class, 'index'])->name('configuration.index');
+    Route::post('configuration', [App\Http\Controllers\Tenant\ConfigurationController::class, 'update'])->name('configuration.update');
+     
+    // Aquí irían las rutas de los módulos específicos
+    // Ejemplo para un módulo de "Citas Médicas"
+    // Route::get('citas-medicas', [App\Http\Controllers\Tenant\Citas\DashboardController::class, 'index'])->name('citas.index');
+    
+    // Route::resource('sucursales', App\Http\Controllers\Tenant\SucursalController::class); // Ejemplo para otro módulo
 });
 
 

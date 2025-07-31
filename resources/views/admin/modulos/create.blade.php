@@ -1,19 +1,15 @@
-<x-app-layout>
+<x-layouts.app>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="h4 fw-bold">
             {{ __('Crear Nuevo Módulo') }}
         </h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 bg-white border-b border-gray-200">
-                    <form method="POST" action="{{ route('admin.modulos.store') }}">
-                        @include('admin.modulos._form', ['submitText' => 'Crear Módulo'])
-                    </form>
-                </div>
-            </div>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ route('admin.modulos.store') }}">
+                @include('admin.modulos._form', ['submitText' => __('Crear Módulo')])
+            </form>
         </div>
     </div>
-</x-app-layout>
+</x-layouts.app>

@@ -21,8 +21,9 @@ class ViewServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Asocia el composer con la vista de navegación del tenant.
-        // Cada vez que se renderice 'layouts.navigation', el composer se ejecutará.
-        View::composer('layouts.navigation', LicensedModulesComposer::class);
+        // Este View Composer es crucial. Se encarga de inyectar las variables
+        // dinámicas ($user, $isSuperAdmin, $isTenantAdmin, $licensedModules)
+        // en nuestro layout unificado cada vez que se renderiza.
+        View::composer('components.layouts.app', LicensedModulesComposer::class);
     }
 }

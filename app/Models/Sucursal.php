@@ -6,31 +6,34 @@ use App\Traits\TenantScoped;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sucursal extends Model
 {
+    // Usamos HasFactory y el importantísimo TenantScoped para el aislamiento de datos.
     use HasFactory, TenantScoped;
 
     /**
      * The table associated with the model.
      *
-     * By default, Laravel will look for the English plural 'sucursals'.
-     * We need to specify the correct Spanish plural table name 'sucursales'.
-     *
      * @var string
      */
     protected $table = 'sucursales';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'nombre',
         'direccion',
         'telefono',
         'is_active',
-        'tenant_id',
     ];
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
 }

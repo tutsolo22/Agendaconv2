@@ -18,11 +18,19 @@ class LicenciaController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index(): View
+    public function index(Request $request)
     {
-        // Obtenemos las licencias con sus relaciones (tenant y modulo) para evitar N+1.
-        $licencias = Licencia::with(['tenant', 'modulo'])->latest()->paginate(10);
-        return view('admin.licencias.index', compact('licencias'));
+        $query = Licencia::with(['tenant', 'modulo'])->latest();
+
+        // Si se pasa un ID de tenant en la URL, filtramos por él.
+        if ($request->has('tenant')) {
+            $query->where('tenant_id', $request->tenant);
+        }
+
+        $licencias = $query->paginate(10)->appends($request->query());
+        $selectedTenant = $request->has('tenant') ? Tenant::find($request->tenant) : null;
+
+        return view('admin.licencias.index', compact('licencias', 'selectedTenant'));
     }
 
     /**

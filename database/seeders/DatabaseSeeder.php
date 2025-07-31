@@ -26,7 +26,6 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Super-Admin',
                 'password' => Hash::make('password'), // Cambiar en producción
-                'is_super_admin' => true,
                 'tenant_id' => null, // Los Super-Admins no pertenecen a un tenant
             ]
         );

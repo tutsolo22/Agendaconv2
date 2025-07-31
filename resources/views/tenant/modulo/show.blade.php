@@ -1,4 +1,4 @@
-<x-layouts.admin>
+<x-layouts.app>
     <x-slot name="header">
         <h2 class="h4 fw-bold">
             <i class="fa-solid {{ $module->icono ?? 'fa-cube' }} fa-fw me-2"></i>
@@ -14,4 +14,4 @@
             </p>
         </div>
     </div>
-</x-layouts.admin>
+</x-layouts.app>

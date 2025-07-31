@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->foreignId('tenant_id')->nullable()->constrained('tenants')->onDelete('cascade');
-            $table->boolean('is_super_admin')->default(false);
+            // Se añade después de la columna 'password' para mantener el orden.
+            $table->foreignId('tenant_id')->nullable()->after('password')->constrained('tenants')->onDelete('cascade');
+            $table->foreignId('sucursal_id')->nullable()->after('tenant_id')->constrained('sucursales')->onDelete('set null');
         });
     }
 
@@ -23,8 +24,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
+            // Es importante eliminar las claves foráneas antes que las columnas.
             $table->dropForeign(['tenant_id']);
-            $table->dropColumn(['tenant_id', 'is_super_admin']);
+            $table->dropForeign(['sucursal_id']);
+            $table->dropColumn(['tenant_id', 'sucursal_id']);
         });
     }
 };
+

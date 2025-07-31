@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('licencias', function (Blueprint $table) {
             $table->id();
+            $table->uuid('codigo_licencia')->unique()->nullable();
             $table->foreignId('tenant_id')->constrained('tenants')->onDelete('cascade');
             $table->foreignId('modulo_id')->constrained('modulos')->onDelete('cascade');
             $table->date('fecha_inicio');

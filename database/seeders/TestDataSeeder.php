@@ -24,81 +24,99 @@ class TestDataSeeder extends Seeder
         $tenantUserRole = Role::where('name', 'Tenant-User')->first();
         $modulos = Modulo::all();
 
-        // --- Tenant 1: Clínica Dental Sonrisas ---
-        $tenant1 = Tenant::create([
-            'name' => 'Clínica Dental Sonrisas',
-            'email' => 'contacto@sonrisas.com',
-            'phone' => '5512345678',
-            'is_active' => true,
-        ]);
+        if ($tenantAdminRole && $tenantUserRole) {
+            // --- Tenant 1: Clínica Dental Sonrisas ---
+            $tenant1 = Tenant::create([
+                'name' => 'Clínica Dental Sonrisas',
+                'email' => 'contacto@sonrisas.com',
+                'phone' => '5512345678',
+                'is_active' => true,
+            ]);
 
-        // Crear Tenant-Admin para Clínica Dental Sonrisas
-        $admin1 = User::create([
-            'name' => 'Dr. Juan Pérez',
-            'email' => 'admin@sonrisas.com',
-            'password' => Hash::make('password'),
-            'tenant_id' => $tenant1->id,
-        ]);
-        $admin1->assignRole($tenantAdminRole);
+            // Crear Sucursales para el Tenant 1
+            $sucursalCentro = Sucursal::withoutEvents(function () use ($tenant1) {
+                return Sucursal::create([
+                    'tenant_id' => 1,
+                    'nombre' => 'Sucursal Centro',
+                    'direccion' => 'Av. Principal 123, Centro',
+                    'telefono' => '5511223344',
+                ]);
+            });
 
-        // Crear un usuario regular para Clínica Dental Sonrisas
-        $user1 = User::create([
-            'name' => 'Recepcionista Ana',
-            'email' => 'recepcion@sonrisas.com',
-            'password' => Hash::make('password'),
-            'tenant_id' => $tenant1->id,
-        ]);
-        $user1->assignRole($tenantUserRole);
+            $sucursalNorte = Sucursal::withoutEvents(function () use ($tenant1) {
+                return Sucursal::create([
+                    'tenant_id' => 1,
+                    'nombre' => 'Sucursal Norte',
+                    'direccion' => 'Blvd. del Norte 456',
+                    'telefono' => '5555667788',
+                ]);
+            });
 
-        // Crear licencias para Clínica Dental Sonrisas
-        $moduloCitas = $modulos->where('nombre', 'Citas Medicas')->first();
-        if ($moduloCitas) {
-            Licencia::create([
+            // Crear Usuarios para el Tenant 1
+            $admin1 = User::create([
+                'name' => 'Dr. Juan Pérez',
+                'email' => 'admin@sonrisas.com',
+                'password' => Hash::make('password'),
                 'tenant_id' => $tenant1->id,
-                'modulo_id' => $moduloCitas->id,
-                'fecha_inicio' => Carbon::now(),
-                'fecha_fin' => Carbon::now()->addYear(),
-                'limite_usuarios' => 5,
+            ]);
+            $admin1->assignRole($tenantAdminRole);
+
+            User::create([
+                'name' => 'Recepcionista Ana',
+                'email' => 'recepcion@sonrisas.com',
+                'password' => Hash::make('password'),
+                'tenant_id' => $tenant1->id,
+                'sucursal_id' => $sucursalCentro->id,
+            ])->assignRole($tenantUserRole);
+
+            User::create([
+                'name' => 'Asistente Luis',
+                'email' => 'asistente@sonrisas.com',
+                'password' => Hash::make('password'),
+                'tenant_id' => $tenant1->id,
+                'sucursal_id' => $sucursalNorte->id,
+            ])->assignRole($tenantUserRole);
+
+            // Crear Licencias para el Tenant 1
+            $moduloCitas = $modulos->where('slug', 'citas-medicas')->first();
+            if ($moduloCitas) {
+                Licencia::create([
+                    'tenant_id' => 1,
+                    'modulo_id' => $moduloCitas->id,
+                    'fecha_inicio' => Carbon::now(),
+                    'fecha_fin' => Carbon::now()->addYear(),
+                    'limite_usuarios' => 10,
+                    'is_active' => true,
+                ]);
+            }
+
+            // --- Tenant 2: Restaurante El Buen Sabor ---
+            $tenant2 = Tenant::create([
+                'name' => 'Restaurante El Buen Sabor',
+                'email' => 'info@buensabor.com',
+                'phone' => '8187654321',
                 'is_active' => true,
             ]);
-        }
 
-        // Crear una sucursal para Clínica Dental Sonrisas
-        Sucursal::create([
-            'tenant_id' => $tenant1->id,
-            'nombre' => 'Sucursal Centro',
-            'direccion' => 'Av. Principal 123, Centro',
-            'telefono' => '5511223344',
-        ]);
-
-        // --- Tenant 2: Restaurante El Buen Sabor ---
-        $tenant2 = Tenant::create([
-            'name' => 'Restaurante El Buen Sabor',
-            'email' => 'info@buensabor.com',
-            'phone' => '8187654321',
-            'is_active' => true,
-        ]);
-
-        // Crear Tenant-Admin para Restaurante El Buen Sabor
-        $admin2 = User::create([
-            'name' => 'Chef María García',
-            'email' => 'admin@buensabor.com',
-            'password' => Hash::make('password'),
-            'tenant_id' => $tenant2->id,
-        ]);
-        $admin2->assignRole($tenantAdminRole);
-
-        // Crear licencias para Restaurante El Buen Sabor
-        $moduloRestaurante = $modulos->where('nombre', 'Restaurante')->first();
-        if ($moduloRestaurante) {
-            Licencia::create([
+            $admin2 = User::create([
+                'name' => 'Chef María García',
+                'email' => 'admin@buensabor.com',
+                'password' => Hash::make('password'),
                 'tenant_id' => $tenant2->id,
-                'modulo_id' => $moduloRestaurante->id,
-                'fecha_inicio' => Carbon::now(),
-                'fecha_fin' => Carbon::now()->addMonths(6),
-                'limite_usuarios' => 1,
-                'is_active' => true,
             ]);
+            $admin2->assignRole($tenantAdminRole);
+
+            $moduloRestaurante = $modulos->where('slug', 'restaurante')->first();
+            if ($moduloRestaurante) {
+                Licencia::create([
+                    'tenant_id' => 2,
+                    'modulo_id' => $moduloRestaurante->id,
+                    'fecha_inicio' => Carbon::now(),
+                    'fecha_fin' => Carbon::now()->addMonths(6),
+                    'limite_usuarios' => 3,
+                    'is_active' => true,
+                ]);
+            }
         }
     }
 }

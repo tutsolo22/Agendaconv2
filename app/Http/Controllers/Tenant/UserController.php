@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Tenant;
 
 use Illuminate\Routing\Controller;
 use App\Models\Licencia;
+use App\Models\Sucursal;
 use App\Models\User;
 use App\Rules\UserLimitPerTenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 use Carbon\Carbon;
@@ -81,7 +83,8 @@ class UserController extends Controller
         // Obtener roles que no sean Super-Admin para el dropdown
         $roles = Role::where('name', '!=', 'Super-Admin')->pluck('name', 'name');
 
-        return view('tenant.users.create', compact('roles'));
+        $sucursales = Sucursal::where('is_active', true)->pluck('nombre', 'id');
+        return view('tenant.users.create', compact('roles', 'sucursales'));
     }
 
     /**
@@ -92,9 +95,10 @@ class UserController extends Controller
         $request->validate([
             // Aplicamos la regla de validación personalizada aquí.
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class, new UserLimitPerTenant],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class, new UserLimitPerTenant],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'string', 'exists:roles,name'],
+            'sucursal_id' => ['nullable', Rule::exists('sucursales', 'id')->where('tenant_id', Auth::user()->tenant_id)],
         ]);
 
         // Asignamos manualmente el tenant_id ya que el trait fue removido del modelo User.
@@ -103,6 +107,7 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'tenant_id' => Auth::user()->tenant_id,
+            'sucursal_id' => $request->sucursal_id,
         ]);
 
         // Asignar el rol seleccionado
@@ -121,7 +126,8 @@ class UserController extends Controller
 
         $roles = Role::where('name', '!=', 'Super-Admin')->pluck('name', 'name');
 
-        return view('tenant.users.edit', compact('user', 'roles'));
+        $sucursales = Sucursal::where('is_active', true)->pluck('nombre', 'id');
+        return view('tenant.users.edit', compact('user', 'roles', 'sucursales'));
     }
 
     /**
@@ -133,9 +139,10 @@ class UserController extends Controller
 
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class.',email,'.$user->id],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class . ',email,' . $user->id],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'string', 'exists:roles,name'],
+            'sucursal_id' => ['nullable', Rule::exists('sucursales', 'id')->where('tenant_id', Auth::user()->tenant_id)],
         ]);
 
         // Prevenir que el admin se quite a sí mismo el rol de 'Tenant-Admin'
@@ -143,7 +150,7 @@ class UserController extends Controller
             return back()->with('error', 'No puedes cambiar tu propio rol de Administrador.');
         }
 
-        $user->update($request->only('name', 'email'));
+        $user->update($request->only('name', 'email', 'sucursal_id'));
 
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);

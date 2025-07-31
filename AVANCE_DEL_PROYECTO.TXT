@@ -43,7 +43,7 @@ el desarrollo del proyecto.
 
 ---
 
-### FASE 2: AUTENTICACIÓN Y GESTIÓN DE TENANTS
+### FASE 2: AUTENTICACIÓN Y GESTIÓN DE TENANTS (Completada)
 
 - [x] Implementar el login para usuarios de tenants.
 - [x] Crear middleware para validar licencias de módulos.
@@ -53,15 +53,23 @@ el desarrollo del proyecto.
     - [x] Ver información de su licencia y módulos contratados (en la barra de navegación).
     - [x] CRUD para sus propios usuarios (`users` con `tenant_id`).
     - [x] CRUD para sus sucursales (`sucursales` con `tenant_id`).
+- [x] Panel de Configuración para el Tenant-Admin.
 
 ---
 
-### FASE 3: DESARROLLO DE MÓDULOS
+### FASE 3: DESARROLLO DE MÓDULOS (En Progreso)
 
-- [ ] Crear migraciones para las tablas del módulo (ej: `restaurante_notas`, `restaurante_menus`).
-- [ ] Crear Modelos, Controladores y Vistas para las funcionalidades del módulo.
+**Nota Estratégica:** Se comenzará con el módulo de **Facturación CFDI v4**. Aunque es el módulo #3, su funcionalidad es un servicio transversal que será consumido por otros módulos (Citas Médicas, Restaurante, etc.) para emitir facturas. Desarrollarlo primero establece una base de facturación sólida para el resto de la aplicación.
+
+#### Módulo: Facturación CFDI v4
+- [ ] Crear migraciones para tablas: `facturacion_cfdi`, `facturacion_series_folios`.
+- [ ] Crear Modelos, Controladores y Vistas para la gestión de facturas.
+- [ ] Implementar un `FacturacionService` para encapsular la lógica de comunicación con el PAC.
 - [ ] Asegurar que todas las consultas y creaciones de registros respeten `tenant_id` y `modulo_id`.
-- [ ] Implementar la lógica de negocio específica del restaurante.
+
+#### Módulo: Citas Médicas (Pendiente)
+
+#### Módulo: Restaurante (Pendiente)
 
 ---
 

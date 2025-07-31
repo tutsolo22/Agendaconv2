@@ -13,6 +13,9 @@ class Modulo extends Model
     protected $fillable = [
         'nombre',
         'descripcion',
+        'slug',
+        'route_name',
+        'icono',
         'is_active',
     ];
 

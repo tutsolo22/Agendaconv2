@@ -1,57 +1,71 @@
+@csrf
+
 <div x-data="{
-    nombre: '{{ old('nombre', $modulo->nombre) }}',
-    slug: '{{ old('slug', $modulo->slug) }}',
-    slugManuallyEdited: {{ old('slug') || $modulo->exists ? 'true' : 'false' }},
+    nombre: '{{ old('nombre', $modulo->nombre ?? '') }}',
+    slug: '{{ old('slug', $modulo->slug ?? '') }}',
     generateSlug() {
-        if (!this.slugManuallyEdited) {
-            this.slug = slugify(this.nombre);
-        }
+        this.slug = this.nombre.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
     }
 }">
-    @csrf
-
-    <!-- Nombre -->
-    <div>
-        <x-input-label for="nombre" :value="__('Nombre del Módulo')" />
-        <x-text-input id="nombre" class="block mt-1 w-full" type="text" name="nombre" x-model="nombre" @input="generateSlug()" required autofocus />
-        <x-input-error :messages="$errors->get('nombre')" class="mt-2" />
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="nombre" class="form-label">{{ __('Nombre del Módulo') }}</label>
+                <input type="text" class="form-control @error('nombre') is-invalid @enderror" id="nombre" name="nombre" x-model="nombre" @input="generateSlug" required autofocus>
+                @error('nombre')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label for="slug" class="form-label">{{ __('Slug (URL amigable)') }}</label>
+                <input type="text" class="form-control @error('slug') is-invalid @enderror" id="slug" name="slug" x-model="slug" required>
+                @error('slug')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
     </div>
+</div>
 
-    <!-- Slug -->
-    <div class="mt-4">
-        <x-input-label for="slug" :value="__('Slug (Identificador URL)')" />
-        <x-text-input id="slug" class="block mt-1 w-full" type="text" name="slug" x-model="slug" @input="slugManuallyEdited = true" required />
-        <p class="text-sm text-gray-500 mt-1">Solo letras minúsculas, números y guiones (ej: citas-medicas).</p>
-        <x-input-error :messages="$errors->get('slug')" class="mt-2" />
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="route_name" class="form-label">{{ __('Nombre de la Ruta Principal') }}</label>
+            <input type="text" class="form-control @error('route_name') is-invalid @enderror" id="route_name" name="route_name" value="{{ old('route_name', $modulo->route_name ?? '') }}" placeholder="Ej: tenant.citas.index">
+            <div class="form-text">Opcional. Nombre de la ruta principal del módulo para la navegación.</div>
+            @error('route_name')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
     </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label for="icono" class="form-label">{{ __('Ícono (Font Awesome 6)') }}</label>
+            <input type="text" class="form-control @error('icono') is-invalid @enderror" id="icono" name="icono" value="{{ old('icono', $modulo->icono ?? '') }}" placeholder="Ej: fa-solid fa-calendar-check">
+            <div class="form-text">Opcional. Clases completas del ícono.</div>
+            @error('icono')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+</div>
 
-    <!-- Descripción -->
-    <div class="mt-4">
-        <x-input-label for="descripcion" :value="__('Descripción')" />
-        <textarea id="descripcion" name="descripcion" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('descripcion', $modulo->descripcion) }}</textarea>
-        <x-input-error :messages="$errors->get('descripcion')" class="mt-2" />
-    </div>
+<div class="mb-3">
+    <label for="descripcion" class="form-label">{{ __('Descripción') }}</label>
+    <textarea class="form-control @error('descripcion') is-invalid @enderror" id="descripcion" name="descripcion" rows="3">{{ old('descripcion', $modulo->descripcion ?? '') }}</textarea>
+    @error('descripcion')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
 
-    <!-- Icono -->
-    <div class="mt-4">
-        <x-input-label for="icono" :value="__('Icono (Clase de Font Awesome)')" />
-        <x-text-input id="icono" class="block mt-1 w-full" type="text" name="icono" :value="old('icono', $modulo->icono)" />
-        <p class="text-sm text-gray-500 mt-1">Ejemplo: `fa-solid fa-stethoscope`.</p>
-        <x-input-error :messages="$errors->get('icono')" class="mt-2" />
-    </div>
+<div class="form-check form-switch mb-4">
+    <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" @checked(old('is_active', $modulo->is_active ?? true))>
+    <label class="form-check-label" for="is_active">{{ __('Módulo Activo') }}</label>
+</div>
 
-    <!-- Estado -->
-    <div class="mt-4">
-        <label for="is_active" class="inline-flex items-center">
-            <input id="is_active" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="is_active" value="1" @checked(old('is_active', $modulo->is_active))>
-            <span class="ms-2 text-sm text-gray-600">{{ __('Activo') }}</span>
-        </label>
-    </div>
-
-    <div class="flex items-center justify-end mt-6">
-        <a href="{{ route('admin.modulos.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-        <x-primary-button>
-            {{ $submitText ?? 'Guardar Módulo' }}
-        </x-primary-button>
-    </div>
+<div class="mt-4">
+    <a href="{{ route('admin.modulos.index') }}" class="btn btn-secondary">{{ __('Cancelar') }}</a>
+    <button type="submit" class="btn btn-primary">{{ $submitText }}</button>
 </div>

@@ -12,4 +12,8 @@ muestre la opcio de cambiar de panel.
 9.-Ahora necesito crear las rutas y el controlador para la sección de "Licencias". ¿Puedes generarlos?
 10.camiar la pagina 403 cuado no tenga licencia el tenant para un modulo y que salga una notificacion que diga que no tiene Licencias
 si desea adquirirla
-11.-                                                                           
+11.- ¿Puedes ayudarme a convertir el contenido de la vista `tenant/users/index.blade.php` a Tailwind CSS?
+ 12.- migrar el frontend a laravel breeze con blade y Tailwind CSS  
+ 13.- por ultimo e importante hay que generar un panel de configuracion para los tenants, en donde puedan subir sus logos para sus sucursales, eslogan, datos necesarios
+  para las impresiones, como su rfc, direcciones de las sucursales, direccion de la matriz, numeros telefonicos, redes sociales, alguna leyenda al pie de la impresion
+  e iremos agregando mas cosas al final

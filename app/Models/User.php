@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email',
         'password',
         'tenant_id',
+        'sucursal_id',
     ];
 
     /**
@@ -55,6 +56,14 @@ class User extends Authenticatable
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Un usuario puede pertenecer a una Sucursal.
+     */
+    public function sucursal(): BelongsTo
+    {
+        return $this->belongsTo(Sucursal::class);
     }
 
     /**
