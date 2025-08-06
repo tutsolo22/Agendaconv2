@@ -28,6 +28,12 @@ Las tablas se clasifican en tres categorías principales:
    - **Regla:** Estas tablas **DEBEN** tener una columna `tenant_id`, pero **NO DEBEN** tener una columna `modulo_id`.
 
 **C) Tablas Transaccionales o de Configuración de Módulo Específico:**
+*   **Propósito**: Contienen entidades que pertenecen a un tenant y son compartidas por todos sus módulos. Son el núcleo de la información del negocio del tenant.
+*   **Ejemplos**: `clientes`, `productos`, `proveedores`.
+*   **Regla**: Estas tablas **DEBEN** tener una columna `tenant_id`, pero **NO DEBEN** tener una columna `modulo_id`.
+*   **Implementación Actual**: Se ha creado el modelo `Cliente` como el primer recurso compartido, unificando el concepto de "paciente" y "cliente" en una sola entidad.
+
+**C) Tablas Transaccionales o de Configuración de Módulo Específico:**
    - **Propósito:** Contienen registros de operaciones o configuraciones que son exclusivas de un módulo específico dentro de un tenant.
    - **Sugerencia de Nomenclatura:** Prefijar el nombre de la tabla con el nombre del módulo para mayor claridad (ej: `restaurante_notas`, `medicas_citas`).
    - **Ejemplos:**
@@ -182,6 +188,39 @@ Se desarrolló el panel de administración para los usuarios con el rol `Tenant-
 *   **Funcionalidad**: Permite configurar logos, eslóganes, datos para impresión, redes sociales y colores de la interfaz, con opciones tanto generales como específicas por sucursal.
 
 ---
+### 9.5. Gestión de Clientes (CRUD)
+*   **Propósito**: Centralizar la gestión de todas las personas o empresas con las que interactúa un tenant.
+*   **Modelo Unificado**: Se creó el modelo `Cliente` para representar tanto a pacientes de un consultorio como a clientes de un restaurante, evitando la duplicidad de datos.
+*   **Controlador**: `Tenant\ClienteController.php` maneja la lógica del CRUD, validaciones y una función de búsqueda.
+*   **Vistas**: Se crearon las vistas CRUD en `resources/views/tenant/clientes/`, utilizando un formulario parcial `_form.blade.php` para reutilizar código.
+*   **Funcionalidad**: Permite al `Tenant-Admin` crear, listar, buscar, editar y eliminar clientes. Incluye una regla de negocio que impide eliminar un cliente si tiene documentos asociados. Se añadió una vista de detalle (`show`) para listar todos los documentos de un cliente específico.
+
+### 9.6. Gestor de Documentos Transversal
+*   **Propósito**: Crear un sistema centralizado para subir y gestionar archivos asociados a clientes, que pueda ser utilizado por cualquier módulo.
+*   **Arquitectura Clave**: Se unificó el concepto de "paciente" y "cliente" en un único modelo `Cliente` (`app/Models/Cliente.php`) para evitar la duplicidad de datos y simplificar la lógica.
+*   **Controlador**: `Tenant\DocumentUploadController.php` maneja la lógica de subida y la búsqueda de clientes vía AJAX.
+*   **Vistas**: Se creó una vista en `tenant/documents/upload.blade.php` con un buscador de clientes dinámico para facilitar la selección.
+*   **Almacenamiento y Gestión**: Sigue la arquitectura definida en la sección 11.2, guardando los archivos en la ruta segura y organizada: `storage/app/public/{tenant_id}/{modulo_slug}/cliente_{cliente_id}`. Se implementó la funcionalidad para eliminar tanto el registro en la base de datos como el archivo físico del disco.
+*   **Resultado**: Se obtiene un módulo de gestión de documentos robusto, seguro, escalable y reutilizable para toda la aplicación.
+
+### 9.7. Componentes de UI Reutilizables
+*   **Mensajes Flash**: Se creó un parcial de Blade en `resources/views/partials/flash-messages.blade.php` para mostrar de forma consistente los mensajes de sesión (éxito, error, advertencia) y los errores de validación en toda la aplicación. Esto centraliza la lógica de las notificaciones y mantiene las vistas más limpias.
+
+---
+
+## 10. ARQUITECTURA MODULAR
+
+Para garantizar la escalabilidad y la organización del código, el proyecto adopta una arquitectura modular. Cada módulo funcional (Facturación, Citas Médicas, etc.) se trata como una mini-aplicación autocontenida dentro del directorio `app/Modules`.
+
+*   **Estructura de Directorios**: Cada módulo reside en `app/Modules/{NombreDelModulo}/` y contiene sus propios Controladores, Modelos, Servicios y un archivo de rutas.
+*   **Vistas**: Las vistas de cada módulo se encuentran en `resources/views/tenant/modules/{nombre-del-modulo}`.
+*   **Service Providers**: Cada módulo tiene su propio `ServiceProvider` (ej: `FacturacionServiceProvider.php`). Este provider es el responsable de:
+    1.  **Registrar las Rutas**: Envuelve las rutas del módulo (`app/Modules/{...}/Routes/web.php`) dentro de los middlewares (`web`, `auth`, `role:Tenant-Admin`) y prefijos (`/tenant`) necesarios. Esto mantiene el módulo autocontenido.
+    2.  **Registrar las Vistas**: Carga las vistas del módulo (`resources/views/tenant/modules/{...}`) y les asigna un namespace (ej: `facturacion::`). Esto evita conflictos de nombres y clarifica de dónde viene cada vista.
+*   **Registro**: El `ServiceProvider` de cada módulo se registra en la sección `providers` de `bootstrap/app.php` para que Laravel lo cargue al iniciar la aplicación.
+*   **Ventajas**: Esta separación facilita el desarrollo, la depuración y la posibilidad de activar o desactivar módulos completos simplemente comentando su `ServiceProvider`.
+
+---
 
 ## 10. MÓDULOS DE LA APLICACIÓN
 
@@ -191,3 +230,25 @@ Se desarrolló el panel de administración para los usuarios con el rol `Tenant-
     *   **Servicio Dedicado**: La lógica de comunicación con el Proveedor Autorizado de Certificación (PAC) se encapsulará en una clase de servicio (ej: `App\Services\FacturacionService`). Esto centraliza la lógica de timbrado, cancelación y consulta de CFDI.
     *   **Seguridad de Credenciales**: Los Certificados de Sello Digital (CSD), llaves privadas y contraseñas se gestionarán de forma segura a través del sistema de cifrado de Laravel y se almacenarán como variables de entorno, nunca directamente en la base de datos.
     *   **Tablas de Base de Datos**: Se crearán tablas específicas como `facturacion_cfdi` para almacenar un registro de las facturas emitidas (UUID, estado, etc.) y `facturacion_series_folios` para gestionar los consecutivos por sucursal.
+
+---
+
+## 11. ARQUITECTURA DE ALMACENAMIENTO DE ARCHIVOS
+
+La gestión de archivos se divide en dos categorías para mantener la organización, seguridad y escalabilidad.
+
+### 11.1. Recursos Estáticos de Módulos
+*   **Propósito**: Almacenar archivos necesarios para el funcionamiento de un módulo que no son generados por el usuario y no deben ser públicamente accesibles vía URL.
+*   **Ejemplos**: Catálogos del SAT en formato `.xlsx` para el módulo de Facturación, plantillas de documentos, etc.
+*   **Ubicación**: `storage/app/modules/{nombre-del-modulo}/...`
+*   **Acceso en Código**: Se utiliza el Facade `Storage` de Laravel. Ejemplo: `Storage::path('modules/facturacion/catalogs/c_UsoCFDI.xlsx');`
+
+### 11.2. Archivos Dinámicos Subidos por Usuarios
+*   **Propósito**: Almacenar archivos generados por la interacción del usuario con la aplicación.
+*   **Ejemplos**: Documentos de pacientes (PDFs, imágenes de rayos X) subidos por un doctor en el módulo de Citas Médicas, fotos de productos en un módulo de inventario, etc.
+*   **Ubicación**: `storage/app/public/{tenant_id}/{nombre-del-modulo}/...`
+    *   La subcarpeta `{tenant_id}` es **crucial** para el aislamiento de datos entre tenants.
+*   **Acceso Público**: Se debe ejecutar `php artisan storage:link` una vez para crear un enlace simbólico desde `public/storage` a `storage/app/public`.
+*   **Acceso en Código**:
+    *   **Guardado**: `Storage::disk('public')->put($ruta, $contenido);`
+    *   **Generación de URL**: `Storage::url($ruta_guardada_en_db);`

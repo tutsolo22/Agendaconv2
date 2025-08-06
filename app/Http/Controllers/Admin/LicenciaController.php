@@ -56,6 +56,8 @@ class LicenciaController extends Controller
         // Preparamos los datos para asegurar que 'is_active' tenga un valor booleano
         $data = $request->all();
         $data['is_active'] = $request->has('is_active');
+        // Asignamos la fecha de inicio como la fecha actual, que es la causa del error.
+        $data['fecha_inicio'] = now();
 
         // Validamos los datos preparados
         $validatedData = validator($data, [
@@ -67,7 +69,8 @@ class LicenciaController extends Controller
                     return $query->where('tenant_id', $request->tenant_id)->whereNotNull('tenant_id');
                 }), // La regla unique solo aplica si se proporciona un tenant_id
             ],
-            'fecha_fin' => 'required|date|after:today',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after:fecha_inicio',
             'limite_usuarios' => 'required|integer|min:1',
             'is_active' => 'boolean',
         ], ['modulo_id.unique' => 'Este tenant ya tiene una licencia para el módulo seleccionado.'])->validate();
@@ -113,7 +116,8 @@ class LicenciaController extends Controller
                     return $query->where('tenant_id', $request->tenant_id)->whereNotNull('tenant_id');
                 })->ignore($licencia->id), // La regla unique solo aplica si se proporciona un tenant_id
             ],
-            'fecha_fin' => 'required|date|after:today',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'required|date|after:fecha_inicio',
             'limite_usuarios' => 'required|integer|min:1',
             'is_active' => 'boolean',
         ], ['modulo_id.unique' => 'Este tenant ya tiene una licencia para el módulo seleccionado.'])->validate();

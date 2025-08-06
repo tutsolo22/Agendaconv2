@@ -17,3 +17,5 @@ si desea adquirirla
  13.- por ultimo e importante hay que generar un panel de configuracion para los tenants, en donde puedan subir sus logos para sus sucursales, eslogan, datos necesarios
   para las impresiones, como su rfc, direcciones de las sucursales, direccion de la matriz, numeros telefonicos, redes sociales, alguna leyenda al pie de la impresion
   e iremos agregando mas cosas al final
+  14.-Refactoriza el buscador de clientes para que sea un componente de Blade reutilizable.
+15, el archivio FacturacionService,php en su regimenFiscalReceptor tiene el valo 616 este dato tieneque venir del modelo de negocios actual

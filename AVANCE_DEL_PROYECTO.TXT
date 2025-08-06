@@ -62,9 +62,18 @@ el desarrollo del proyecto.
 **Nota Estratégica:** Se comenzará con el módulo de **Facturación CFDI v4**. Aunque es el módulo #3, su funcionalidad es un servicio transversal que será consumido por otros módulos (Citas Médicas, Restaurante, etc.) para emitir facturas. Desarrollarlo primero establece una base de facturación sólida para el resto de la aplicación.
 
 #### Módulo: Facturación CFDI v4
-- [ ] Crear migraciones para tablas: `facturacion_cfdi`, `facturacion_series_folios`.
-- [ ] Crear Modelos, Controladores y Vistas para la gestión de facturas.
-- [ ] Implementar un `FacturacionService` para encapsular la lógica de comunicación con el PAC.
+- [x] Crear migraciones para tablas: `facturacion_datos_fiscales`, `facturacion_series_folios`, `facturacion_cfdis`.
+- [x] Crear Modelos, Controladores y Vistas para la gestión de facturas (CRUD de Borradores).
+- [x] Crear CRUD para la gestión de `DatosFiscales` (CSD).
+- [x] Crear CRUD para la gestión de `Series y Folios`.
+- [x] Implementar un `FacturacionService` para encapsular la lógica de timbrado (con simulación de PAC).
+- [x] Implementar descarga de XML y generación/descarga de PDF para facturas timbradas.
+- [x] Implementar la cancelación de CFDI timbrados (con simulación de PAC).
+- [x] Implementar el envío de facturas (XML y PDF) por correo electrónico.
+- [x] Refactorizar la validación del formulario de creación de facturas a un `FormRequest`.
+- [x] Implementar la creación de Notas de Crédito a partir de facturas canceladas.
+- [x] Añadir vista de detalle para facturas que muestra los CFDI relacionados.
+- [x] Implementar la funcionalidad de Factura Global para ventas al público.
 - [ ] Asegurar que todas las consultas y creaciones de registros respeten `tenant_id` y `modulo_id`.
 
 #### Módulo: Citas Médicas (Pendiente)

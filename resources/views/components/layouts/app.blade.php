@@ -58,9 +58,11 @@
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="tenantAdminDropdown">
                                     <li><a class="dropdown-item {{ request()->routeIs('tenant.users.*') ? 'active' : '' }}" href="{{ route('tenant.users.index') }}">{{ __('Usuarios') }}</a></li>
+                                    <li><a class="dropdown-item {{ request()->routeIs('tenant.clientes.*') ? 'active' : '' }}" href="{{ route('tenant.clientes.index') }}">{{ __('Clientes') }}</a></li>
                                     <li><a class="dropdown-item {{ request()->routeIs('tenant.sucursales.*') ? 'active' : '' }}" href="{{ route('tenant.sucursales.index') }}">{{ __('Sucursales') }}</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item {{ request()->routeIs('tenant.licencias.*') ? 'active' : '' }}" href="{{ route('tenant.licencias.index') }}">{{ __('Mis Licencias') }}</a></li>
+                                    <li><a class="dropdown-item {{ request()->routeIs('documents.upload.index') ? 'active' : '' }}" href="{{ route('tenant.documents.upload.index') }}">{{ __('Gestor de Documentos') }}</a></li>
                                     <li><a class="dropdown-item {{ request()->routeIs('tenant.configuration.*') ? 'active' : '' }}" href="{{ route('tenant.configuration.index') }}">{{ __('Configuración') }}</a></li>
                                 </ul>
                             </li>
@@ -71,9 +73,29 @@
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                         Módulos
                                     </a>
-                                    <ul class="dropdown-menu">
+                                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                                         @foreach ($licensedModules as $modulo)
-                                            @if($modulo->route_name && Route::has($modulo->route_name))
+                                            @if($modulo->slug === 'facturacion-cfdi-v4')
+                                                {{-- Menú especial con submenú para Facturación --}}
+                                                <li class="dropdown-submenu">
+                                                    <a class="dropdown-item dropdown-toggle" href="#">
+                                                        <i class="fa-solid {{ $modulo->icono }} fa-fw me-2"></i>{{ $modulo->nombre }}
+                                                    </a>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.cfdis.index') }}">Ver Facturas</a></li>
+                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.cfdis.create') }}">Crear Factura (Ingreso)</a></li>
+                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.create-global') }}">Crear Factura Global</a></li>
+                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.pagos.index') }}">Complementos de Pago</a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.ventas-publico.index') }}">Registro de Ventas</a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.datos-fiscales.index') }}">Datos Fiscales (CSD)</a></li>
+                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.series-folios.index') }}">Series y Folios</a></li>
+                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.pacs.index') }}">Proveedores (PAC)</a></li>
+                                                    </ul>
+                                                </li>
+                                            @elseif($modulo->route_name && Route::has($modulo->route_name))
+                                                {{-- Enlace estándar para otros módulos --}}
                                                 <li>
                                                     <a class="dropdown-item {{ request()->routeIs(Str::before($modulo->route_name, '.').'.*') ? 'active' : '' }}" href="{{ route($modulo->route_name) }}">
                                                         <i class="fa-solid {{ $modulo->icono }} fa-fw me-2"></i>{{ $modulo->nombre }}
@@ -130,6 +152,34 @@
         </main>
     </div>
 
+    <style>
+        /* Estilos para submenús en Bootstrap 5 */
+        .dropdown-submenu {
+            position: relative;
+        }
+        .dropdown-submenu .dropdown-menu {
+            top: 0;
+            left: 100%;
+            margin-top: -1px;
+            display: none;
+        }
+        .dropdown-submenu:hover > .dropdown-menu {
+            display: block;
+        }
+        .dropdown-submenu > a:after {
+            display: block;
+            content: " ";
+            float: right;
+            width: 0;
+            height: 0;
+            border-color: transparent;
+            border-style: solid;
+            border-width: 5px 0 5px 5px;
+            border-left-color: #ccc;
+            margin-top: 5px;
+            margin-right: -10px;
+        }
+    </style>
     @stack('scripts')
 </body>
 </html>
