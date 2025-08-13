@@ -40,9 +40,14 @@ Las tablas se clasifican en tres categorías principales:
      - Módulo Restaurante: `restaurante_notas`, `restaurante_gastos`, `restaurante_menus`.
      - Módulo Citas Médicas: `medicas_citas`, `medicas_historiales_clinicos`.
      - Módulo Facturación: `facturacion_cfdi`, `facturacion_series_folios`.
-   - **Regla:** Estas tablas **DEBEN** tener **AMBAS** columnas: `tenant_id` y `modulo_id`.
+   - **Regla:** Estas tablas **DEBEN** tener una columna `tenant_id`. La columna `modulo_id` es opcional pero recomendada si la lógica del módulo lo requiere para una funcionalidad específica.
 
 ---
+
+**D) Tablas de Catálogos del Sistema (SAT):**
+   - **Propósito:** Contienen la información de los catálogos oficiales del SAT, necesarios para la facturación y otros módulos fiscales. Son pobladas y actualizadas mediante *seeders*.
+   - **Ejemplos:** `sat_formas_pago`, `sat_usos_cfdi`, `sat_productos_servicios`, `sat_regimenes_fiscales`.
+   - **Regla:** Estas tablas **NO DEBEN** tener una columna `tenant_id` ni `modulo_id`. Son recursos
 
 ### 3. LÓGICA DE ACCESO A DATOS (AISLAMIENTO DE TENANTS)
 
@@ -57,16 +62,15 @@ Las tablas se clasifican en tres categorías principales:
 *   **UI Framework:** Se utilizará **Bootstrap 5** para el sistema de grid, componentes y diseño responsivo.
 *   **Iconografía:** Se utilizará **Font Awesome 6** para un set de iconos consistente y completo.
 *   **Asset Bundling:** Se usará **Vite**, la herramienta por defecto en Laravel, para la compilación y optimización de assets (CSS, JS).
-*   **Sugerencia de Modernización (Interactividad):** Para interfaces de usuario altamente dinámicas (reportes interactivos, dashboards en tiempo real, etc.), se evaluará el uso de:
-    *   **Laravel Livewire:** Para crear componentes dinámicos sin salir del ecosistema de Blade y PHP. Ideal para mantener la simplicidad.
-    *   **Inertia.js con Vue.js:** Para una experiencia de tipo "Single-Page Application" (SPA) más fluida, sin la complejidad de construir una API completa.
-
-La elección final dependerá de la complejidad de la interfaz requerida para cada módulo.
+*   **Interactividad:** Se utiliza un enfoque híbrido:
+    *   **Alpine.js:** Para interacciones ligeras y declarativas directamente en el HTML (ej: generación de slugs).
+    *   **JavaScript Nativo (API-Driven):** Para formularios complejos y dinámicos (como el de Facturación), se consume una API interna del sistema mediante `fetch`. Librerías como **Tom-Select** se utilizan para crear buscadores avanzados y mejorar la experiencia de usuario, demostrando un patrón de "Frontend Ligero sobre API".
+    *   **Livewire/Inertia:** Quedan como opciones a evaluar para módulos futuros que requieran una experiencia de tipo SPA más completa.
 
 
 ---
 
-### 4. COMPONENTES CLAVE Y SUGERENCIAS DE IMPLEMENTACIÓN
+### 4. COMPONENTES CLAVE Y PATRONES DE IMPLEMENTACIÓN
 
 *   **Roles y Permisos:**
     - **Sugerencia:** Utilizar el paquete `spatie/laravel-permission`. Es el estándar de la industria, flexible y robusto.
@@ -76,14 +80,24 @@ La elección final dependerá de la complejidad de la interfaz requerida para ca
     - **Sugerencia:** Utilizar el paquete `spatie/laravel-activitylog`.
     - **Configuración:** Se configurará para registrar eventos (created, updated, deleted) en los modelos críticos. Guardará `user_id`, `ip_address`, y los datos modificados. El nombre de la terminal se puede capturar desde el cliente con JavaScript y enviarlo en las peticiones.
 
+*   **Logging Modular:**
+    - **Implementación:** Se ha configurado el sistema de logging de Laravel para utilizar canales por módulo.
+    - **Lógica:** Un servicio central (`ModuleLoggerService`) permite registrar errores en archivos específicos (ej: `storage/logs/facturacion.log`), facilitando la depuración y manteniendo los logs organizados.
+    - **Ventaja:** Aísla los problemas de cada módulo y evita un único archivo de log monolítico y difícil de leer.
+
 *   **Notificaciones:**
     - **Implementación:** Usar el sistema de Notificaciones nativo de Laravel.
     - **Canales:** Se configurarán canales para email y notificaciones dentro de la base de datos (para mostrar en la UI).
     - **Colas de Trabajo (Queues):** Todas las notificaciones (especialmente por email) se enviarán a través de colas de trabajo con un driver como `database` o `redis`. Esto asegura que el envío no retrase la respuesta al usuario y permite reintentos automáticos si falla la entrega.
 
 *   **Facturación CFDI v4:**
-    - **Arquitectura:** Se creará un `Servicio` o `Action` en Laravel que encapsule la lógica de comunicación con el PAC (Proveedor Autorizado de Certificación).
-    - **Seguridad:** Las credenciales (CSD, llave, contraseña) y la clave del PAC se almacenarán de forma segura utilizando el sistema de cifrado de Laravel y se guardarán en variables de entorno (`.env`), nunca en la base de datos directamente.
+    - **Arquitectura Implementada (API-First):** El módulo se ha construido siguiendo un patrón "API-First". El frontend (vistas de Blade) es un consumidor ligero de una API interna segura y específica del tenant.
+        *   **Servicio de Catálogos:** Se creó `App\Modules\Facturacion\Services\SatCatalogService` para centralizar y abstraer el acceso a los catálogos del SAT. **Este servicio ha sido refactorizado para leer desde una base de datos dedicada (`sat_*` tables) en lugar de archivos Excel, mejorando drásticamente el rendimiento y la mantenibilidad.**
+        *   **API de Datos:** Un controlador de API (`Api\CatalogosApiController`) expone los catálogos del servicio anterior y otras funcionalidades (como la búsqueda de clientes) a través de endpoints seguros. Todas las llamadas a la API están protegidas por el middleware de autenticación y el `TenantScope` se aplica implícitamente.
+        *   **Frontend Dinámico:** La vista de creación de CFDI (`facturacion::cfdis.create`) utiliza JavaScript nativo (`fetch`) para poblar dinámicamente todos los campos `<select>` y para alimentar buscadores avanzados (con Tom-Select), resultando en una interfaz rápida y una excelente experiencia de usuario.
+        *   **Estructura de Controladores:** Los controladores del módulo se han organizado en subcarpetas (`Cfdi_40`, `Configuracion`) para mejorar la claridad y la escalabilidad del código.
+        *   **Servicio de Timbrado:** La lógica de negocio pesada (comunicación con el PAC, generación de XML, timbrado, cancelación) está encapsulada en servicios como `CfdiService` y `PagoService`, manteniendo los controladores delgados.
+    - **Seguridad de Credenciales:** Los datos sensibles como los Certificados de Sello Digital (CSD) y las credenciales del PAC se gestionan a través de la interfaz de "Configuración" del módulo y se almacenan de forma segura en la base de datos, utilizando el cifrado de Laravel.
 
 *   **Generador de Licencias:**
     - **Lógica:** Un panel de Super-Admin permitirá crear registros en la tabla `licencias`. Se puede generar un `codigo_licencia` único (UUID o string aleatorio) que el tenant usará para activar sus módulos.

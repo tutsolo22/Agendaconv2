@@ -73,6 +73,37 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // --- INICIO: Canal de Log para el Módulo de Facturación ---
+        'facturacion' => [
+            'driver' => 'daily', // Rota el archivo de log diariamente
+            'path' => storage_path('logs/facturacion/facturacion.log'), // Ruta específica para este módulo
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 15, // Guardar logs por 15 días
+            'replace_placeholders' => true,
+        ],
+        // --- FIN: Canal de Log para el Módulo de Facturación ---
+
+        // --- INICIO: Canal de Log para el Módulo de Restaurante ---
+        'restaurante' => [
+            'driver' => 'daily', // Rota el archivo de log diariamente
+            'path' => storage_path('logs/restaurante/restaurante.log'), // Ruta específica para este módulo
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 15, // Guardar logs por 15 días
+            'replace_placeholders' => true,
+        ],
+        // --- FIN: Canal de Log para el Módulo de Restaurante ---
+
+                // --- INICIO: Canal de Log para el Módulo de Médico ---
+        'medico' => [
+            'driver' => 'daily', // Rota el archivo de log diariamente
+            'path' => storage_path('logs/medico/medico.log'), // Ruta específica para este módulo
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 15, // Guardar logs por 15 días
+            'replace_placeholders' => true,
+        ],
+        // --- FIN: Canal de Log para el Módulo de Médico ---
+
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

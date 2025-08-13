@@ -9,7 +9,7 @@
     <div class="card">
         <div class="card-body">
             @include('partials.flash-messages')
-            <form action="{{ route('tenant.facturacion.series-folios.store') }}" method="POST">
+            <form action="{{ route('tenant.facturacion.configuracion.series-folios.store') }}" method="POST">
                 @include('facturacion::series-folios._form')
             </form>
         </div>

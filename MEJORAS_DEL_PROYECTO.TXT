@@ -19,3 +19,7 @@ si desea adquirirla
   e iremos agregando mas cosas al final
   14.-Refactoriza el buscador de clientes para que sea un componente de Blade reutilizable.
 15, el archivio FacturacionService,php en su regimenFiscalReceptor tiene el valo 616 este dato tieneque venir del modelo de negocios actual
+
+Ahora necesito implementar la lógica para guardar el borrador del CFDI en la base de datos. ¿Puedes generar el método `store` en `CfdiController`?
+
+La nueva columna "Producto" que añadí es un campo de texto simple. Para mejorar la experiencia del usuario, podrías convertir ese campo en un buscador de productos de tu propio inventario. Al seleccionar un producto local, el sistema podría autocompletar la "Descripción", la "Clave Prod/Serv" del SAT y el "Valor Unitario", agilizando enormemente el proceso de facturación.

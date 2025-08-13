@@ -2,16 +2,16 @@
     <x-slot name="header">
         <h2 class="h4 fw-bold">
             <i class="fa-solid fa-hashtag me-2"></i>
-            Editar Serie y Folio: {{ $series_folio->serie }}
+            Editar Serie y Folio: {{ $serieFolio->serie }}
         </h2>
     </x-slot>
 
     <div class="card">
         <div class="card-body">
             @include('partials.flash-messages')
-            <form action="{{ route('tenant.facturacion.series-folios.update', $series_folio) }}" method="POST">
+            <form action="{{ route('tenant.facturacion.configuracion.series-folios.update', $serieFolio) }}" method="POST">
                 @method('PUT')
-                @include('facturacion::series-folios._form', ['serie' => $series_folio])
+                @include('facturacion::series-folios._form', ['serie' => $serieFolio])
             </form>
         </div>
     </div>

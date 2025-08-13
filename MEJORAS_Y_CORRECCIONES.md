@@ -42,3 +42,76 @@ Este documento registra las soluciones a problemas críticos y las mejoras arqui
 *   **Motivo**: Para evitar seguir depurando el error persistente en el panel de configuración del Super-Admin y poder avanzar en otras áreas, se decidió desactivar temporalmente el acceso a esta funcionalidad desde la barra de navegación.
 *   **Acción**: Se eliminó el enlace "Configuración de Tenants" del menú desplegable "Administración" en la vista `resources/views/components/layouts/app.blade.php`.
 *   **Estado**: El controlador, las rutas y las vistas siguen existiendo en el código, pero no son accesibles desde la UI. Queda pendiente para una futura revisión y corrección.
+
+
+---
+
+## 3. Correcciones Implementadas
+
+Esta sección detalla la solución a problemas específicos encontrados durante el desarrollo.
+
+### 3.1. Carga de Catálogos del SAT (Formas de Pago)
+*   **Síntoma**: El campo "Formas de Pago" no se cargaba en el formulario de creación de facturas, a pesar de que la tabla `sat_cfdi_40_formas_pago` contenía datos.
+*   **Diagnóstico**: Tras un proceso de depuración exhaustivo utilizando `php artisan tinker` para aislar la capa de enrutamiento, se determinó que el problema se debía a una combinación de:
+    1.  Una **caché corrupta** que guardó una versión vacía del catálogo.
+    2.  Un **filtro de vigencia** en `SatCatalogService` que descartaba los registros debido a posibles inconsistencias en los datos de las columnas `vigencia_desde` y `vigencia_hasta`.
+*   **Solución**: Se eliminó temporalmente el filtro de vigencia para confirmar la carga de datos y se limpió la caché de la aplicación (`php artisan cache:clear`), lo que resolvió el problema de forma definitiva.
+
+### 3.2. Configuración de Canales de Log
+*   **Síntoma**: Los logs de los módulos de "Restaurante" y "Médico" se estaban escribiendo en el archivo de "Facturación".
+*   **Diagnóstico**: Se detectó un error de copiado en `config/logging.php`, donde la clave del canal `'facturacion'` estaba duplicada para los tres módulos.
+*   **Solución**: Se corrigieron las claves de los canales a `'restaurante'` y `'medico'` respectivamente, asegurando que cada módulo escriba en su propio archivo de log.
+
+---
+### 3.3. Carga Dinámica en Formulario de Datos Fiscales
+*   **Síntoma**: El campo "Régimen Fiscal" en el formulario de "Crear/Editar Datos Fiscales" no se poblaba con los datos del catálogo del SAT. Los logs de depuración (`console.log`) en el archivo JavaScript no aparecían en la consola del navegador.
+*   **Diagnóstico**:
+    1.  El script `datosfiscales.js` no se ejecutaba porque el selector `document.querySelector('form[action*="datos-fiscales.store"]')` fallaba. Se determinó que Laravel renderiza la URL completa en el atributo `action` (ej: `http://.../datos-fiscales`), la cual no contiene el nombre de la ruta, por lo que el selector no encontraba el elemento.
+    2.  Una vez solucionado lo anterior, se detectó que la llamada a la función `await getCatalogos()` que obtiene los datos de la API se había perdido dentro del bloque `try...catch` durante una refactorización anterior.
+*   **Solución**:
+    1.  Se asignó un `id` estático y único (`id="datos-fiscales-form"`) a la etiqueta `<form>` en las vistas `create.blade.php` y `edit.blade.php`.
+    2.  Se modificó el script `datosfiscales.js` para usar el selector `document.getElementById('datos-fiscales-form')`, que es más robusto y fiable para encontrar el elemento.
+    3.  Se restauró la llamada a `await getCatalogos()` dentro de la función de carga, asegurando que los datos se soliciten a la API antes de intentar poblar el `select`.
+*   **Resultado**: El script ahora se ejecuta correctamente, los catálogos se cargan de forma asíncrona y el campo "Régimen Fiscal" funciona como se espera tanto en el modo de creación como en el de edición, seleccionando automáticamente el valor guardado cuando corresponde.
+
+---
+
+## 4. Refactorización y Mejoras de Arquitectura
+
+Esta sección documenta las mejoras estructurales implementadas para aumentar la calidad y mantenibilidad del código.
+
+### 4.1. Reorganización de Controladores del Módulo de Facturación
+*   **Problema**: A medida que el módulo de facturación crecía, tener todos los controladores en la misma carpeta (`Http/Controllers`) se volvía desorganizado.
+*   **Solución**: Se crearon subdirectorios temáticos para agrupar los controladores por su funcionalidad:
+    *   `Http/Controllers/Cfdi_40/`: Para los controladores relacionados con la emisión de CFDI 4.0.
+    *   `Http/Controllers/Cfdi_40/Pago/`: Para el complemento de recepción de pagos.
+    *   `Http/Controllers/Configuracion/`: Para todos los controladores relacionados con la configuración del módulo (PACs, Series, Datos Fiscales).
+*   **Beneficio**: La estructura del código ahora es más intuitiva, escalable y fácil de navegar.
+
+### 4.2. Implementación de un Sistema de Logging Modular
+*   **Problema**: Los errores de todos los módulos se registrarían en un único archivo `laravel.log`, dificultando la depuración.
+*   **Solución**: Se implementó un sistema de logging por canales.
+    1.  Se configuraron canales específicos para cada módulo en `config/logging.php`.
+    2.  Se creó un servicio central `App\Modules\Services\ModuleLoggerService` para gestionar el registro de logs.
+    3.  Los controladores ahora inyectan este servicio para registrar errores en archivos dedicados (ej: `storage/logs/facturacion/facturacion.log`).
+*   **Beneficio**: Depuración más rápida y eficiente, y un sistema de monitoreo de errores mucho más organizado.
+
+---
+
+## 5. Mejoras Futuras y Sugerencias Pendientes
+
+Esta sección documenta funcionalidades sugeridas que se implementarán en fases posteriores del desarrollo.
+
+### 5.1. Catálogo de Productos/Servicios del Tenant
+*   **Sugerencia**: Crear un módulo para que cada tenant pueda gestionar su propio catálogo de productos y servicios.
+*   **Objetivo**: Agilizar drásticamente el proceso de facturación. En lugar de que el usuario llene manualmente cada campo del concepto, podría simplemente buscar y seleccionar un producto de su catálogo interno.
+*   **Funcionalidad Propuesta**:
+    1.  **CRUD de Productos**: Permitir al tenant crear, editar y eliminar sus propios productos/servicios, asociando a cada uno:
+        *   Un nombre o código interno.
+        *   La `Clave Prod/Serv` del SAT correspondiente.
+        *   Una `Descripción` predeterminada.
+        *   Un `Valor Unitario` (precio) predeterminado.
+    2.  **Integración con el Formulario de Facturación**:
+        *   Modificar el campo "Producto" en la tabla de conceptos para que sea un buscador dinámico (usando Tom-Select) que consulte el catálogo interno del tenant.
+        *   Al seleccionar un producto del catálogo, el JavaScript autocompletará automáticamente los campos "Descripción", "Clave Prod/Serv" y "Valor Unitario" en la misma fila, reduciendo el tiempo y los errores de captura.
+*   **Estado**: Pendiente de implementación. Se ha decidido priorizar otras funcionalidades y dejar esta mejora para una etapa posterior.

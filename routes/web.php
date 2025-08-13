@@ -68,18 +68,12 @@ Route::middleware(['auth', 'role:Tenant-Admin'])->prefix('tenant')->name('tenant
     Route::delete('documents/{documento}', [DocumentUploadController::class, 'destroy'])->name('documents.destroy');
     Route::get('documents/search-clients', [DocumentUploadController::class, 'searchClients'])->name('documents.search.clients');
      
-    // Aquí irían las rutas de los módulos específicos
-    // Ejemplo para un módulo de "Citas Médicas"
-    // Route::get('citas-medicas', [App\Http\Controllers\Tenant\Citas\DashboardController::class, 'index'])->name('citas.index');
-    
-    // Route::resource('sucursales', App\Http\Controllers\Tenant\SucursalController::class); // Ejemplo para otro módulo
-
-    // Rutas para el Módulo de Facturación
-    Route::prefix('facturacion')->name('facturacion.')->group(function () {
-        Route::resource('cfdis', App\Modules\Facturacion\Http\Controllers\CfdiController::class);
-        Route::resource('pagos', App\Modules\Facturacion\Http\Controllers\PagoController::class);
-        Route::get('pagos/search-invoices', [App\Modules\Facturacion\Http\Controllers\PagoController::class, 'searchInvoices'])->name('pagos.search.invoices');
-    });
+    // =======================================================================
+    // NOTA: Las rutas para los módulos específicos (como Facturación)
+    // ya no se definen aquí. Se cargan automáticamente a través de sus
+    // respectivos Service Providers (ej. FacturacionServiceProvider).
+    // Esto mantiene el código modular y organizado.
+    // =======================================================================
 });
 
 

@@ -21,9 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withProviders([
-        // Los providers en bootstrap/providers.php se cargan automáticamente.
-        // Aquí se añaden los providers de módulos o los que se registran manualmente.
-    \App\Modules\Facturacion\Providers\FacturacionServiceProvider::class,
+            // Los providers de la aplicación y módulos se registran en bootstrap/providers.php
     ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //

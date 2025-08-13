@@ -2,6 +2,8 @@
 
 Este documento detalla el proceso de instalación, configuración y puesta en marcha del proyecto Agendacon v2, construido sobre Laravel.
 
+> Para un registro detallado de todas las versiones, nuevas características y correcciones, consulta el archivo **[CHANGELOG.md](CHANGELOG.md)**.
+
 ---
 
 ## 1. PRINCIPIOS FUNDAMENTALES
@@ -26,6 +28,7 @@ Las tablas se clasifican en tres categorías principales:
    - **Propósito:** Contienen entidades que pertenecen a un tenant y pueden ser utilizadas por diferentes módulos de ese mismo tenant.
    - **Ejemplos:** `clientes` (del tenant), `pacientes` (del tenant), `proveedores`, `inventario_general`, `sucursales`.
    - **Regla:** Estas tablas **DEBEN** tener una columna `tenant_id`, pero **NO DEBEN** tener una columna `modulo_id`.
+   - **Implementación Actual**: Se ha creado el modelo `Cliente` como el primer recurso compartido, unificando el concepto de "paciente" y "cliente" en una sola entidad.
 
 **C) Tablas Transaccionales o de Configuración de Módulo Específico:**
 *   **Propósito**: Contienen entidades que pertenecen a un tenant y son compartidas por todos sus módulos. Son el núcleo de la información del negocio del tenant.
@@ -38,8 +41,16 @@ Las tablas se clasifican en tres categorías principales:
    - **Sugerencia de Nomenclatura:** Prefijar el nombre de la tabla con el nombre del módulo para mayor claridad (ej: `restaurante_notas`, `medicas_citas`).
    - **Ejemplos:**
      - Módulo Restaurante: `restaurante_notas`, `restaurante_gastos`, `restaurante_menus`.
+     - Módulo Facturación: `facturacion_cfdi`, `facturacion_pagos`, `facturacion_series_folios`, `facturacion_datos_fiscales`.
      - Módulo Citas Médicas: `medicas_citas`, `medicas_historiales_clinicos`.
    - **Regla:** Estas tablas **DEBEN** tener una columna `tenant_id`. La columna `modulo_id` es opcional pero recomendada si la lógica del módulo lo requiere.
+
+**D) Tablas de Catálogos del Sistema (SAT):**
+   - **Propósito:** Contienen la información de los catálogos oficiales del SAT, necesarios para la facturación y otros módulos fiscales. Son pobladas y actualizadas mediante *seeders* y consumidas a través de una API interna para optimizar el rendimiento.
+   - **Ejemplos:** `sat_formas_pago`, `sat_usos_cfdi`, `sat_productos_servicios`, `sat_regimenes_fiscales`.
+   - **Regla:** Estas tablas **NO DEBEN** tener una columna `tenant_id` ni `modulo_id`. Son recursos globales del sistema, compartidos por todos los tenants.
+
+---
 
 ## 3. LÓGICA DE ACCESO A DATOS (AISLAMIENTO DE TENANTS)
 
@@ -59,6 +70,7 @@ Las tablas se clasifican en tres categorías principales:
 *   **Iconografía:** Se utiliza **Font Awesome 6** para un set de iconos completo.
 *   **Asset Bundling:** Se usa **Vite**, la herramienta por defecto en Laravel, para la compilación y optimización de assets (CSS, JS).
 *   **Interactividad:** Se utiliza **Alpine.js** para añadir interactividad ligera en el frontend, como la generación automática de slugs en los formularios.
+*   **Interfaces Dinámicas**: Para formularios complejos como el de facturación, se utiliza **JavaScript nativo (Fetch API)** para consumir una API interna y librerías como **Tom-Select** para crear buscadores dinámicos y mejorar la experiencia de usuario.
 
 ## 5. COMPONENTES CLAVE Y SUGERENCIAS DE IMPLEMENTACIÓN
 
@@ -70,15 +82,6 @@ Las tablas se clasifican en tres categorías principales:
 *   **Auditoría de Movimientos:**
     - **Sugerencia:** Utilizar el paquete `spatie/laravel-activitylog`.
     - **Configuración:** Se configurará para registrar eventos (created, updated, deleted) en los modelos críticos. Guardará `user_id`, `ip_address`, y los datos modificados.
-
-*   **Notificaciones:**
-    - **Implementación:** Usar el sistema de Notificaciones nativo de Laravel.
-    - **Canales:** Se configurarán canales para email y notificaciones dentro de la base de datos (para mostrar en la UI).
-    - **Colas de Trabajo (Queues):** Todas las notificaciones (especialmente por email) se enviarán a través de colas de trabajo para no retrasar la respuesta al usuario.
-
-*   **Facturación CFDI v4:**
-    - **Arquitectura:** Se creará un `Servicio` o `Action` en Laravel que encapsule la lógica de comunicación con el PAC (Proveedor Autorizado de Certificación).
-    - **Seguridad:** Las credenciales (CSD, llave, contraseña) y la clave del PAC se almacenarán de forma segura utilizando el sistema de cifrado de Laravel y se guardarán en variables de entorno (`.env`), nunca en la base de datos directamente.
 
 *   **Generador de Licencias:**
     - **Lógica:** Un panel de Super-Admin permite crear registros en la tabla `licencias`. Se genera un `codigo_licencia` único (UUID) que el tenant usará para activar sus módulos.
@@ -218,18 +221,40 @@ Para garantizar la escalabilidad y la organización del código, el proyecto ado
     1.  **Registrar las Rutas**: Envuelve las rutas del módulo (`app/Modules/{...}/Routes/web.php`) dentro de los middlewares (`web`, `auth`, `role:Tenant-Admin`) y prefijos (`/tenant`) necesarios. Esto mantiene el módulo autocontenido.
     2.  **Registrar las Vistas**: Carga las vistas del módulo (`resources/views/tenant/modules/{...}`) y les asigna un namespace (ej: `facturacion::`). Esto evita conflictos de nombres y clarifica de dónde viene cada vista.
 *   **Registro**: El `ServiceProvider` de cada módulo se registra en la sección `providers` de `bootstrap/app.php` para que Laravel lo cargue al iniciar la aplicación.
+*   **Registro**: El `ServiceProvider` de cada módulo se registra en el archivo `bootstrap/providers.php`. Este archivo es cargado automáticamente por la aplicación, manteniendo la configuración limpia y centralizada.
 *   **Ventajas**: Esta separación facilita el desarrollo, la depuración y la posibilidad de activar o desactivar módulos completos simplemente comentando su `ServiceProvider`.
 
 ---
-
-## 10. MÓDULOS DE LA APLICACIÓN
-
-### 10.1. Módulo de Facturación CFDI v4 (En Desarrollo)
-*   **Propósito**: Este módulo actúa como un servicio centralizado para la emisión de Comprobantes Fiscales Digitales por Internet (CFDI) en su versión 4.0. Está diseñado para ser consumido por otros módulos que requieran facturar sus operaciones (ej: una consulta médica, la venta en un restaurante).
+## 10.1. Sistema de Logging Modular
+*   **Propósito**: Centralizar y organizar el registro de errores y eventos de la aplicación, separando los logs por cada módulo funcional.
 *   **Arquitectura**:
-    *   **Servicio Dedicado**: La lógica de comunicación con el Proveedor Autorizado de Certificación (PAC) se encapsulará en una clase de servicio (ej: `App\Services\FacturacionService`). Esto centraliza la lógica de timbrado, cancelación y consulta de CFDI.
-    *   **Seguridad de Credenciales**: Los Certificados de Sello Digital (CSD), llaves privadas y contraseñas se gestionarán de forma segura a través del sistema de cifrado de Laravel y se almacenarán como variables de entorno, nunca directamente en la base de datos.
-    *   **Tablas de Base de Datos**: Se crearán tablas específicas como `facturacion_cfdi` para almacenar un registro de las facturas emitidas (UUID, estado, etc.) y `facturacion_series_folios` para gestionar los consecutivos por sucursal.
+    *   **Canales de Log**: En `config/logging.php`, se han definido "canales" de log específicos para cada módulo (ej: `facturacion`, `medico`). Cada canal apunta a su propio archivo de log (ej: `storage/logs/facturacion/facturacion.log`).
+    *   **Servicio Centralizado**: Se creó el servicio `App\Modules\Services\ModuleLoggerService`. Este servicio actúa como una única puerta de entrada para registrar eventos, simplificando su uso en los controladores.
+    *   **Uso**: En lugar de usar `Log::error()`, los controladores inyectan `ModuleLoggerService` y lo utilizan para registrar errores en el canal correspondiente (ej: `$logger->error('facturacion', 'Mensaje de error')`).
+*   **Ventajas**:
+    *   **Organización**: Facilita la depuración al tener los errores de cada módulo en archivos separados.
+    *   **Mantenibilidad**: El código es más limpio y la lógica de logging está centralizada.
+    *   **Robustez**: Si se intenta usar un canal no definido, el sistema no falla, sino que registra el error en el log principal por defecto.
+---
+
+## 10. MÓDULOS IMPLEMENTADOS
+
+### 10.1. Módulo de Facturación V4
+*   **Propósito**: Proporciona una solución completa para la emisión y gestión de Comprobantes Fiscales Digitales por Internet (CFDI) en su versión 4.0, incluyendo complementos de pago.
+*   **Arquitectura**:
+    *   **API-First**: El módulo se basa en un enfoque "API-First". El frontend (vistas de Blade) es ligero y consume una API interna para obtener todos los datos necesarios de forma asíncrona.
+    *   **Servicio de Catálogos (Optimizado)**: Se creó `App\Modules\Facturacion\Services\SatCatalogService` para centralizar el acceso a los catálogos del SAT. **Este servicio fue refactorizado para consultar una base de datos dedicada (`sat_*` tables) en lugar de procesar archivos Excel en cada petición.** Esta optimización resulta en una carga casi instantánea de los catálogos en el frontend.
+    *   **API de Catálogos**: El controlador `App\Modules\Facturacion\Http\Controllers\Api\CatalogosApiController` expone los catálogos del SAT y otras búsquedas (como clientes) a través de endpoints seguros y protegidos por el middleware del tenant.
+    *   **Estructura de Controladores**: Para una mejor organización y escalabilidad, los controladores se han agrupado en subdirectorios temáticos: `app/Modules/Facturacion/Http/Controllers/Cfdi_40/` para la facturación general, `.../Pago/` para complementos de pago, y `.../Configuracion/` para la gestión de PACs, series y datos fiscales.
+    *   **Frontend Dinámico**: La vista de creación de CFDI (`facturacion::cfdis.create`) utiliza JavaScript para llamar a la API y poblar dinámicamente los campos `<select>` (Formas de Pago, Métodos de Pago, Uso de CFDI, etc.) y para implementar buscadores avanzados con Tom-Select (para Clientes y Productos/Servicios).
+    *   **Seguridad de Credenciales**: Los datos sensibles como los Certificados de Sello Digital (CSD) y las credenciales del PAC se gestionan en la sección de "Configuración" del módulo y se almacenan de forma segura.
+*   **Funcionalidades Implementadas**:
+    *   CRUD para Datos Fiscales del emisor (CSD).
+    *   CRUD para Proveedores de Timbrado (PACs).
+    *   CRUD para Series y Folios.
+    *   Formulario de creación de CFDI con carga dinámica de catálogos y búsqueda de clientes.
+    *   Menú de navegación reorganizado y específico para el módulo.
+*   **Tablas de Base de Datos**: `facturacion_cfdi`, `facturacion_pagos`, `facturacion_series_folios`, `facturacion_datos_fiscales`, `facturacion_pacs`.
 
 ---
 
@@ -239,7 +264,7 @@ La gestión de archivos se divide en dos categorías para mantener la organizaci
 
 ### 11.1. Recursos Estáticos de Módulos
 *   **Propósito**: Almacenar archivos necesarios para el funcionamiento de un módulo que no son generados por el usuario y no deben ser públicamente accesibles vía URL.
-*   **Ejemplos**: Catálogos del SAT en formato `.xlsx` para el módulo de Facturación, plantillas de documentos, etc.
+*   **Ejemplos**: Plantillas de documentos, archivos de configuración iniciales, etc. **Nota: Los catálogos del SAT en formato `.xlsx` han sido migrados a una base de datos y ya no se utilizan directamente desde el almacenamiento.**
 *   **Ubicación**: `storage/app/modules/{nombre-del-modulo}/...`
 *   **Acceso en Código**: Se utiliza el Facade `Storage` de Laravel. Ejemplo: `Storage::path('modules/facturacion/catalogs/c_UsoCFDI.xlsx');`
 

@@ -1,59 +1,44 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Modules\Facturacion\Http\Controllers\Cfdi_40\CfdiController;
+use App\Modules\Facturacion\Http\Controllers\Complemento_Pago\PagoController;
+use App\Modules\Facturacion\Http\Controllers\Configuracion\DatoFiscalController;
+use App\Modules\Facturacion\Http\Controllers\Configuracion\PacController;
+use App\Modules\Facturacion\Http\Controllers\Configuracion\SerieFolioController;
 
 /*
 |--------------------------------------------------------------------------
-| Facturacion Module Routes
+| Web Routes for Facturacion Module
 |--------------------------------------------------------------------------
 |
-| The FacturacionServiceProvider already applies the 'tenant' prefix,
-| the 'tenant.' name, and the necessary middleware.
-|
+| Aquí se registran todas las rutas de la interfaz de usuario para el módulo.
+| El FacturacionServiceProvider se encarga de aplicar los prefijos
+| 'tenant/facturacion' y los nombres 'tenant.facturacion.'.
 */
 
-use App\Modules\Facturacion\Http\Controllers\CfdiController;
-use App\Modules\Facturacion\Http\Controllers\DatoFiscalController;
-use App\Modules\Facturacion\Http\Controllers\PacController;
-use App\Modules\Facturacion\Http\Controllers\PagoController;
-use App\Modules\Facturacion\Http\Controllers\SerieFolioController;
-use App\Modules\Facturacion\Http\Controllers\VentaPublicoController;
+// Rutas de Comprobantes
+Route::get('cfdis/create-credit-note/{factura}', [CfdiController::class, 'createCreditNote'])->name('cfdis.create-credit-note');
+Route::get('cfdis/create-global', [CfdiController::class, 'createGlobal'])->name('cfdis.create-global');
+Route::get('cfdis/search-ventas', [CfdiController::class, 'searchVentas'])->name('cfdis.search-ventas');
+Route::post('cfdis/store-global', [CfdiController::class, 'storeGlobal'])->name('cfdis.store-global');
+Route::resource('cfdis', CfdiController::class);
 
-Route::prefix('facturacion')->name('facturacion.')->group(function () {
-    // --- Recursos de Facturas (CFDI) ---
-    // Esto crea rutas como: tenant.facturacion.cfdis.index, .create, .store, etc.
-    Route::resource('cfdis', CfdiController::class);
+// Rutas de Complementos de Pago
+Route::get('pagos/search-invoices', [PagoController::class, 'searchInvoices'])->name('pagos.search.invoices');
+Route::resource('pagos', PagoController::class);
 
-    // --- Rutas Adicionales para CFDI (acciones específicas) ---
-    Route::post('/cfdis/{cfdi}/timbrar', [CfdiController::class, 'timbrar'])->name('cfdis.timbrar');
-    Route::post('/cfdis/{cfdi}/cancelar', [CfdiController::class, 'cancelar'])->name('cfdis.cancelar');
-    Route::get('/cfdis/{cfdi}/download/xml', [CfdiController::class, 'downloadXml'])->name('cfdis.download.xml');
-    Route::get('/cfdis/{cfdi}/download/pdf', [CfdiController::class, 'downloadPdf'])->name('cfdis.download.pdf');
-    Route::get('/cfdis/search-clients', [CfdiController::class, 'searchClients'])->name('cfdis.search.clients');
-    Route::post('/cfdis/search-ventas', [CfdiController::class, 'searchVentas'])->name('cfdis.search.ventas');
-    Route::post('/cfdis/{cfdi}/enviar-correo', [CfdiController::class, 'enviarPorCorreo'])->name('cfdis.enviar-correo');
-    Route::get('/cfdis/{cfdi}/create-credit-note', [CfdiController::class, 'createCreditNote'])->name('cfdis.create-credit-note');
+// Rutas de Configuración del Módulo
+Route::prefix('configuracion')->name('configuracion.')->group(function () {
 
-    // --- Recursos de Complementos de Pago ---
-    // Esto crea rutas como: tenant.facturacion.pagos.index, .create, .store, etc.
-    Route::resource('pagos', PagoController::class);
+    // Rutas de Datos Fiscales
+    Route::get('datos-fiscales', [DatoFiscalController::class, 'index'])->name('datos-fiscales.index');
+    Route::get('datos-fiscales/create', [DatoFiscalController::class, 'create'])->name('datos-fiscales.create');
+    Route::post('datos-fiscales', [DatoFiscalController::class, 'store'])->name('datos-fiscales.store');
+    Route::get('datos-fiscales/{datoFiscal}/edit', [DatoFiscalController::class, 'edit'])->name('datos-fiscales.edit');
+    Route::put('datos-fiscales/{datoFiscal}', [DatoFiscalController::class, 'update'])->name('datos-fiscales.update');
+    Route::delete('datos-fiscales/{datoFiscal}', [DatoFiscalController::class, 'destroy'])->name('datos-fiscales.destroy');
 
-    // --- Rutas Adicionales para Pagos (acciones específicas) ---
-    Route::get('/pagos/search-invoices', [PagoController::class, 'searchInvoices'])->name('pagos.search.invoices');
-    Route::post('/pagos/{pago}/timbrar', [PagoController::class, 'timbrar'])->name('pagos.timbrar');
-    Route::post('/pagos/{pago}/cancelar', [PagoController::class, 'cancelar'])->name('pagos.cancelar');
-    Route::get('/pagos/{pago}/download/xml', [PagoController::class, 'downloadXml'])->name('pagos.download.xml');
-    Route::get('/pagos/{pago}/download/pdf', [PagoController::class, 'downloadPdf'])->name('pagos.download.pdf');
-
-    // --- Rutas de Configuración y otras funcionalidades ---
-
-    // Factura Global (acción única)
-    Route::get('create-global', [CfdiController::class, 'createGlobal'])->name('create-global');
-    Route::post('store-global', [CfdiController::class, 'storeGlobal'])->name('store-global');
-
-    // Secciones de configuración (tratadas como recursos para futura expansión)
-    Route::resource('ventas-publico', VentaPublicoController::class)->names('ventas-publico');
-    Route::resource('datos-fiscales', DatoFiscalController::class)->only(['index', 'store'])->names('datos-fiscales');
-    Route::resource('series-folios', SerieFolioController::class)->names('series-folios');
-    Route::resource('pacs', PacController::class)->names('pacs');
+    Route::resource('pacs', PacController::class);
+    Route::resource('series-folios', SerieFolioController::class);
 });

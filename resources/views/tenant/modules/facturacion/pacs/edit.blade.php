@@ -8,7 +8,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('tenant.facturacion.pacs.update', $pac) }}" method="POST">
+            <form action="{{ route('tenant.facturacion.configuracion.pacs.update', $pac) }}" method="POST">
                 @method('PUT')
                 @include('facturacion::pacs._form')
             </form>

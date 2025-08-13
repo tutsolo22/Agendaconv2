@@ -5,7 +5,7 @@
                 <i class="fa-solid fa-server me-2"></i>
                 Gestión de Proveedores de Timbrado (PACs)
             </h2>
-            <a href="{{ route('tenant.facturacion.pacs.create') }}" class="btn btn-primary">
+            <a href="{{ route('tenant.facturacion.configuracion.pacs.create') }}" class="btn btn-primary">
                 <i class="fa-solid fa-plus me-2"></i>Añadir PAC
             </a>
         </div>
@@ -27,7 +27,6 @@
                             <th>Nombre</th>
                             <th>RFC</th>
                             <th>Usuario</th>
-                            <th>URL Pruebas</th>
                             <th>URL Producción</th>
                             <th>Estatus</th>
                             <th class="text-end">Acciones</th>
@@ -39,18 +38,17 @@
                                 <td>{{ $pac->nombre }}</td>
                                 <td>{{ $pac->rfc }}</td>
                                 <td>{{ $pac->usuario }}</td>
-                                <td class="small">{{ $pac->url_pruebas }}</td>
                                 <td class="small">{{ $pac->url_produccion }}</td>
-                                <td>
-                                    <span class="badge bg-{{ $pac->is_active ? 'success' : 'danger' }}">
+                                <td class="text-center">
+                                    <span class="badge bg-{{ $pac->is_active ? 'success' : 'secondary' }}">
                                         {{ $pac->is_active ? 'Activo' : 'Inactivo' }}
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ route('tenant.facturacion.pacs.edit', $pac) }}" class="btn btn-sm btn-warning" title="Editar">
+                                    <a href="{{ route('tenant.facturacion.configuracion.pacs.edit', $pac) }}" class="btn btn-sm btn-warning" title="Editar">
                                         <i class="fa-solid fa-pencil-alt"></i>
                                     </a>
-                                    <form action="{{ route('tenant.facturacion.pacs.destroy', $pac) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Está seguro de que desea eliminar este proveedor?');">
+                                    <form action="{{ route('tenant.facturacion.configuracion.pacs.destroy', $pac) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Está seguro de que desea eliminar este proveedor?');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
@@ -61,7 +59,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No hay proveedores (PACs) registrados.</td>
+                                <td colspan="6" class="text-center text-muted py-4">No hay proveedores (PACs) registrados.</td>
                             </tr>
                         @endforelse
                     </tbody>

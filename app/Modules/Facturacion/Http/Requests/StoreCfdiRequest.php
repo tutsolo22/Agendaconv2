@@ -3,40 +3,36 @@
 namespace App\Modules\Facturacion\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreCfdiRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        // Asumimos que cualquier usuario autenticado del tenant puede crear una factura.
-        // Se puede añadir lógica más específica si es necesario.
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
+            // --- SECCIÓN DATOS GENERALES ---
             'cliente_id' => 'required|exists:clientes,id',
-            'serie_folio_id' => 'required|exists:facturacion_series_folios,id',
-            'forma_pago' => 'required|string|max:2',
-            'metodo_pago' => 'required|string|max:3',
-            'uso_cfdi' => 'required|string|max:4',
+            'serie' => ['required', 'string', Rule::exists('facturacion_series_folios', 'serie')->where('activo', true)], // Verifica que la serie exista y esté activa
+            'forma_pago' => ['required', 'string', Rule::exists('sat_cfdi_40_formas_pago', 'id')],
+            'metodo_pago' => ['required', 'string', Rule::exists('sat_cfdi_40_metodos_pago', 'id')],
+            'uso_cfdi' => ['required', 'string', Rule::exists('sat_cfdi_40_usos_cfdi', 'id')],
+
+            // --- SECCIÓN CONCEPTOS ---
             'conceptos' => 'required|array|min:1',
-            'conceptos.*.clave_prod_serv' => 'required|string|max:8',
-            'conceptos.*.cantidad' => 'required|numeric|min:0.01',
-            'conceptos.*.clave_unidad' => 'required|string|max:3',
-            'conceptos.*.descripcion' => 'required|string|max:255',
-            'conceptos.*.valor_unitario' => 'required|numeric|min:0.01',
-            'related_uuid' => 'nullable|uuid',
-            'relation_type' => 'nullable|string|size:2',
+            'conceptos.*.cantidad' => 'required|numeric|gt:0', // gt:0 (greater than 0) es más legible y estricto.
+            'conceptos.*.producto' => 'required|string|max:255',
+            'conceptos.*.descripcion' => 'required|string|max:1000',
+            'conceptos.*.clave_prod_serv' => ['required', 'string', Rule::exists('sat_cfdi_40_productos_servicios', 'id')],
+            'conceptos.*.valor_unitario' => 'required|numeric|min:0',
+            // El campo 'importe' no se valida porque es de solo lectura y se calcula en el backend.
+
+            // --- CAMPO DE ACCIÓN ---
+            'action' => ['required', 'string', Rule::in(['guardar', 'timbrar'])],
         ];
     }
 }

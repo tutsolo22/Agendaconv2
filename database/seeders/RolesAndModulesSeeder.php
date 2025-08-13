@@ -64,9 +64,9 @@ class RolesAndModulesSeeder extends Seeder
                 'is_active' => true
             ],
             [
-                'nombre' => 'Facturacion CFDI v4',
-                'slug' => 'facturacion-cfdi-v4',
-                'route_name' => 'tenant.facturacion.cfdis.index', // Ruta principal del módulo de facturación
+                'nombre' => 'Facturacion V4',
+                'slug' => 'facturacion-v4',
+                'route_name' => 'tenant.facturacion.index', // Ruta principal del módulo de facturación
                 'descripcion' => 'Emisión de facturas electrónicas CFDI 4.0.',
                 'icono' => 'fa-solid fa-file-invoice-dollar',
                 'is_active' => true

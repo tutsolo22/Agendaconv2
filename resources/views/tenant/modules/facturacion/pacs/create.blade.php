@@ -8,8 +8,8 @@
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('tenant.facturacion.pacs.store') }}" method="POST">
-                @include('facturacion::pacs._form')
+            <form action="{{ route('tenant.facturacion.configuracion.pacs.store') }}" method="POST">
+                @include('facturacion::pacs._form', ['pac' => new \App\Modules\Facturacion\Models\Configuracion\Pac()])
             </form>
         </div>
     </div>

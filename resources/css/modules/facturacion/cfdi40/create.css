@@ -1,0 +1,12 @@
+.ts-control {
+    padding: .5rem .75rem;
+    font-size: 1rem;
+}
+.table-responsive {
+    overflow-x: visible; /* Permite que los dropdowns de Tom-Select se muestren correctamente */
+}
+.concept-importe {
+    background-color: #e9ecef;
+}
+
+/* Estilos adicionales para mejorar la apariencia */

@@ -115,73 +115,17 @@
     @push('scripts')
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {{-- Pasamos las rutas y configuración al script externo --}}
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const clienteSelect = $('#cliente_id');
-            const findInvoicesBtn = document.getElementById('find-invoices-btn');
-            const invoicesContainer = document.getElementById('invoices-container');
-            const invoicesTableBody = document.getElementById('invoices-table-body');
-            const montoTotalInput = document.getElementById('monto_total');
-
-            // Inicializar Select2 para clientes
-            clienteSelect.select2({
-                placeholder: 'Selecciona un cliente',
-                ajax: {
-                    url: '{{ route("tenant.documents.search.clients") }}',
-                    dataType: 'json',
-                    delay: 250,
-                    processResults: function (data) {
-                        return {
-                            results: $.map(data, function (item) {
-                                return {
-                                    text: item.nombre_completo + ' (' + item.rfc + ')',
-                                    id: item.id
-                                }
-                            })
-                        };
-                    },
-                    cache: true
-                }
-            });
-
-            // Habilitar el botón de búsqueda si hay un cliente seleccionado al cargar
-            if (clienteSelect.val()) {
-                findInvoicesBtn.disabled = false;
+        window.pagosConfig = {
+            isNewRecord: false,
+            initialAmount: {{ $pago->monto ?? 0 }},
+            urls: {
+                searchClients: '{{ route("tenant.documents.search.clients") }}',
+                searchInvoices: '{{ route("tenant.facturacion.pagos.search.invoices") }}'
             }
-
-            clienteSelect.on('select2:select', function (e) {
-                findInvoicesBtn.disabled = false;
-                // Limpiar facturas si se cambia de cliente
-                invoicesContainer.classList.add('d-none');
-                invoicesTableBody.innerHTML = '';
-            });
-
-            // Buscar facturas pendientes al hacer clic en el botón
-            findInvoicesBtn.addEventListener('click', async function () {
-                // ... (La lógica de búsqueda y renderizado de facturas es idéntica a create.blade.php)
-            });
-
-            // ... (El resto del script para manejar checkboxes y montos es idéntico a create.blade.php)
-
-            // Antes de enviar el formulario, construir los datos de los documentos relacionados
-            document.getElementById('payment-form').addEventListener('submit', function(e) {
-                // Esta lógica solo añade los NUEVOS documentos seleccionados.
-                // El controlador deberá manejar la lógica de no duplicar si se vuelve a seleccionar uno ya existente.
-                document.querySelectorAll('.invoice-checkbox:checked').forEach((checkbox, index) => {
-                    const invoice = JSON.parse(checkbox.dataset.invoice);
-                    const row = checkbox.closest('tr');
-                    const amount = row.querySelector('.payment-amount').value;
-
-                    this.insertAdjacentHTML('beforeend', `<input type="hidden" name="doctosRelacionados[${index}][id_documento]" value="${invoice.uuid_fiscal}">`);
-                    this.insertAdjacentHTML('beforeend', `<input type="hidden" name="doctosRelacionados[${index}][serie]" value="${invoice.serie}">`);
-                    this.insertAdjacentHTML('beforeend', `<input type="hidden" name="doctosRelacionados[${index}][folio]" value="${invoice.folio}">`);
-                    this.insertAdjacentHTML('beforeend', `<input type="hidden" name="doctosRelacionados[${index}][moneda_dr]" value="MXN">`);
-                    this.insertAdjacentHTML('beforeend', `<input type="hidden" name="doctosRelacionados[${index}][num_parcialidad]" value="1">`);
-                    this.insertAdjacentHTML('beforeend', `<input type="hidden" name="doctosRelacionados[${index}][imp_saldo_ant]" value="${invoice.saldo_pendiente}">`);
-                    this.insertAdjacentHTML('beforeend', `<input type="hidden" name="doctosRelacionados[${index}][imp_pagado]" value="${amount}">`);
-                });
-            });
-        });
+        };
     </script>
+    @vite(['resources/js/Modules/Facturacion/pagos/pagos.js'])
     @endpush
 </x-layouts.app>

@@ -75,23 +75,58 @@
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                                         @foreach ($licensedModules as $modulo)
-                                            @if($modulo->slug === 'facturacion-cfdi-v4')
+                                            {{-- Se valida por el nombre de la ruta principal (listado de CFDI) para que sea resiliente a cambios de nombre/slug desde el panel de admin --}}
+                                            @if($modulo->route_name === 'tenant.facturacion.index')
                                                 {{-- Menú especial con submenú para Facturación --}}
                                                 <li class="dropdown-submenu">
                                                     <a class="dropdown-item dropdown-toggle" href="#">
                                                         <i class="fa-solid {{ $modulo->icono }} fa-fw me-2"></i>{{ $modulo->nombre }}
                                                     </a>
                                                     <ul class="dropdown-menu">
-                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.cfdis.index') }}">Ver Facturas</a></li>
-                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.cfdis.create') }}">Crear Factura (Ingreso)</a></li>
-                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.create-global') }}">Crear Factura Global</a></li>
-                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.pagos.index') }}">Complementos de Pago</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.ventas-publico.index') }}">Registro de Ventas</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.datos-fiscales.index') }}">Datos Fiscales (CSD)</a></li>
-                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.series-folios.index') }}">Series y Folios</a></li>
-                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.pacs.index') }}">Proveedores (PAC)</a></li>
+                                                        {{-- CFDIs --}}
+                                                        <li class="dropdown-submenu">
+                                                            <a class="dropdown-item dropdown-toggle" href="#">CFDIs</a>
+                                                            <ul class="dropdown-menu">
+                                                                <li class="dropdown-submenu">
+                                                                    <a class="dropdown-item dropdown-toggle" href="#">Facturas</a>
+                                                                    <ul class="dropdown-menu">
+                                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.cfdis.create') }}">Crear Factura</a></li>
+                                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.cfdis.index') }}">Listar / Cancelar Facturas</a></li>
+                                                                    </ul>
+                                                                </li>
+                                                                {{-- <li class="dropdown-submenu">
+                                                                    <a class="dropdown-item dropdown-toggle" href="#">Factura Global</a>
+                                                                    <ul class="dropdown-menu">
+                                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.cfdis.create-global') }}">Crear Factura Global</a></li>
+                                                                        <li><a class="dropdown-item" href="#">Cancelar Factura Global</a></li>
+                                                                    </ul>
+                                                                </li> --}}
+                                                                <li class="dropdown-submenu">
+                                                                    <a class="dropdown-item dropdown-toggle" href="#">Notas de Crédito</a>
+                                                                    <ul class="dropdown-menu">
+                                                                        <li><a class="dropdown-item" href="{{ route('tenant.facturacion.cfdis.index') }}">Listar / Crear Notas</a></li>
+                                                                    </ul>
+                                                                </li>
+                                                            </ul>
+                                                        </li>
+                                                        {{-- Complementos --}}
+                                                        <li class="dropdown-submenu">
+                                                            <a class="dropdown-item dropdown-toggle" href="#">Complementos</a>
+                                                            <ul class="dropdown-menu">
+                                                                <li><a class="dropdown-item" href="{{ route('tenant.facturacion.pagos.index') }}">Recepción de Pagos</a></li>
+                                                                <li><a class="dropdown-item" href="#">Nómina</a></li>
+                                                                <li><a class="dropdown-item" href="#">Carta Porte</a></li>
+                                                            </ul>
+                                                        </li>
+                                                        {{-- Configuración --}}
+                                                        <li class="dropdown-submenu">
+                                                            <a class="dropdown-item dropdown-toggle" href="#">Configuración</a>
+                                                            <ul class="dropdown-menu">
+                                                                <li><a class="dropdown-item" href="{{ route('tenant.facturacion.configuracion.datos-fiscales.index') }}">Datos Fiscales</a></li>
+                                                                <li><a class="dropdown-item" href="{{ route('tenant.facturacion.configuracion.series-folios.index') }}">Series y Folios</a></li>
+                                                                <li><a class="dropdown-item" href="{{ route('tenant.facturacion.configuracion.pacs.index') }}">Proveedores (PAC)</a></li>
+                                                            </ul>
+                                                        </li>
                                                     </ul>
                                                 </li>
                                             @elseif($modulo->route_name && Route::has($modulo->route_name))
@@ -180,6 +215,11 @@
             margin-right: -10px;
         }
     </style>
+    {{-- Inicializa objetos globales para evitar errores si no se definen en una vista específica --}}
+    <script>
+        window.apiUrls = window.apiUrls || {};
+        window.currentData = window.currentData || {};
+    </script>
     @stack('scripts')
 </body>
 </html>

@@ -3,8 +3,9 @@
 namespace App\Modules\Facturacion\Services;
 
 use App\Modules\Facturacion\Models\Cfdi;
-use App\Modules\Facturacion\Models\DatoFiscal;
-use App\Modules\Facturacion\Models\Pago;
+use App\Modules\Facturacion\Models\Configuracion\DatoFiscal;
+use App\Modules\Facturacion\Models\Complemento\Pago\Pago;
+use App\Modules\Facturacion\Models\Configuracion\SerieFolio;
 use CfdiUtils\Certificado\Certificado;
 use CfdiUtils\CfdiCreator40;
 use Exception;
