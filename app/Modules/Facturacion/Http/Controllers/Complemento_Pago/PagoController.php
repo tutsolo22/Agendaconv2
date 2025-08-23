@@ -7,6 +7,7 @@ use App\Modules\Facturacion\Models\Cfdi;
 use App\Modules\Facturacion\Models\Complemento\Pago\Pago;
 use App\Modules\Facturacion\Models\Cfdi40\FormaPago;
 use App\Modules\Facturacion\Models\Configuracion\SerieFolio;
+use App\Modules\Facturacion\Services\SatCatalogService;
 use App\Modules\Facturacion\Services\PagoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use CfdiUtils\Cfdi as CfdiReader;
+use CfdiUtils\ConsultaCfdiSat\RequestParameters;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\View\View;
 
 class PagoController extends Controller
@@ -30,12 +35,12 @@ class PagoController extends Controller
     /**
      * Muestra el formulario para crear un nuevo complemento de pago.
      */
-    public function create(): View
+    public function create(SatCatalogService $catalogService): View
     {
         $series = SerieFolio::where('tipo_comprobante', 'P')->where('is_active', true)->get();
-        // $formasPago = FormaPago::where('is_active', true)->pluck('texto', 'id');
-        $formasPago = []; // Deshabilitado temporalmente para evitar error de columna.
-
+        // Cargamos el catálogo de formas de pago para que esté disponible en el <select>
+        $formasPago = $catalogService->getFormasPago()->pluck('texto', 'id');
+ 
         return view('facturacion::pagos.create', compact('series', 'formasPago'));
     }
 
@@ -112,18 +117,18 @@ class PagoController extends Controller
     /**
      * Muestra los detalles de un complemento de pago específico.
      */
-    public function show(Pago $pago): View
+    public function show(Pago $pago, SatCatalogService $catalogService): View
     {
         $pago->load('cliente', 'documentos');
-        // $formasPago = FormaPago::where('is_active', true)->pluck('texto', 'id');
-        $formasPago = []; // Deshabilitado temporalmente para evitar error de columna.
+        // Usamos el servicio de catálogos para obtener el texto de la forma de pago
+        $formasPago = $catalogService->getFormasPago()->pluck('texto', 'id');
         return view('facturacion::pagos.show', compact('pago', 'formasPago'));
     }
 
     /**
      * Muestra el formulario para editar un complemento de pago.
      */
-    public function edit(Pago $pago): View|RedirectResponse
+    public function edit(Pago $pago, SatCatalogService $catalogService): View|RedirectResponse
     {
         if ($pago->status !== 'borrador') {
             return redirect()->route('tenant.facturacion.pagos.show', $pago)
@@ -131,8 +136,7 @@ class PagoController extends Controller
         }
 
         $series = SerieFolio::where('tipo_comprobante', 'P')->where('is_active', true)->get();
-        // $formasPago = FormaPago::where('is_active', true)->pluck('texto', 'id');
-        $formasPago = []; // Deshabilitado temporalmente para evitar error de columna.
+        $formasPago = $catalogService->getFormasPago()->pluck('texto', 'id');
         $pago->load('documentos', 'cliente');
 
         return view('facturacion::pagos.edit', compact('pago', 'series', 'formasPago'));
@@ -226,8 +230,13 @@ class PagoController extends Controller
     public function timbrar(Pago $pago, PagoService $pagoService): RedirectResponse
     {
         try {
-            $pagoService->timbrar($pago);
-            return redirect()->route('tenant.facturacion.pagos.show', $pago)->with('success', 'Complemento de pago timbrado exitosamente.');
+            $resultado = $pagoService->timbrar($pago);
+
+            if (!$resultado->success) {
+                return back()->with('error', 'Error al timbrar: ' . $resultado->message);
+            }
+
+            return redirect()->route('tenant.facturacion.pagos.show', $pago)->with('success', $resultado->message);
         } catch (\Exception $e) {
             return back()->with('error', 'Error al timbrar: ' . $e->getMessage());
         }
@@ -238,11 +247,15 @@ class PagoController extends Controller
      */
     public function cancelar(Request $request, Pago $pago, PagoService $pagoService): RedirectResponse
     {
-        // En una aplicación real, aquí se obtendría el motivo de un formulario.
-        $motivo = '02'; // Comprobante emitido con errores con relación.
+        // La cancelación de retenciones/pagos no requiere motivo según la documentación de Formas Digitales.
         try {
-            $pagoService->cancelar($pago, $motivo);
-            return redirect()->route('tenant.facturacion.pagos.show', $pago)->with('success', 'Complemento de pago cancelado exitosamente.');
+            $resultado = $pagoService->cancelar($pago);
+
+            if (!$resultado->success) {
+                return back()->with('error', 'Error al cancelar: ' . $resultado->message);
+            }
+
+            return redirect()->route('tenant.facturacion.pagos.show', $pago)->with('success', $resultado->message);
         } catch (\Exception $e) {
             return back()->with('error', 'Error al cancelar: ' . $e->getMessage());
         }
@@ -264,10 +277,34 @@ class PagoController extends Controller
      */
     public function downloadPdf(Pago $pago)
     {
-        if ($pago->status !== 'timbrado') {
+        if ($pago->status !== 'timbrado' || !$pago->path_xml) {
             abort(404, 'Solo se pueden descargar PDFs de complementos timbrados.');
         }
-        // Aquí iría la lógica para generar y descargar el PDF.
+
+        $pago->load('cliente', 'documentos');
+
+        // 1. Leer el XML timbrado desde el storage
+        $xmlContent = Storage::get($pago->path_xml);
+        $cfdiReader = CfdiReader::newFromString($xmlContent);
+
+        // Se busca el nodo del Timbre Fiscal Digital. El método getTimbreFiscalDigital no existe en la clase Cfdi.
+        // La forma correcta es buscar el nodo dentro del complemento.
+        $tfd = $cfdiReader->getNode()->searchNode('cfdi:Complemento', 'tfd:TimbreFiscalDigital');
+
+        if (!$tfd) {
+            abort(500, 'El XML del complemento no contiene un Timbre Fiscal Digital válido.');
+        }
+
+        // 2. Generar la URL para el código QR usando el helper de cfdiutils
+        $qrUrl = RequestParameters::createFromCfdi($cfdiReader)->expression();
+
+        // 3. Generar el QR como imagen PNG y codificarla en base64 para embeberla en el HTML
+        $qrCode = base64_encode(QrCode::format('png')->size(200)->generate($qrUrl));
+
+        // 4. Cargar la vista del PDF y pasarle los datos necesarios
+        $pdf = Pdf::loadView('facturacion::pagos.pdf', compact('pago', 'qrCode', 'tfd'));
+
+        return $pdf->download("Pago-{$pago->serie}-{$pago->folio}.pdf");
     }
 
     /**

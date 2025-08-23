@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
+use PhpCfdi\Credentials\Credential;
+use Throwable;
 
 class DatoFiscalController extends Controller
 {
@@ -20,7 +23,7 @@ class DatoFiscalController extends Controller
         return view('facturacion::datos-fiscales.index', compact('datosFiscales'));
     }
 
-    public function create(): View
+    public function create(): \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
     {
         // Si ya existen datos fiscales, no se permite crear otro. Redirigir al index.
         if (DatoFiscal::where('tenant_id', auth()->user()->tenant_id)->exists()) {
@@ -50,7 +53,7 @@ class DatoFiscalController extends Controller
 
         $datoFiscal = DatoFiscal::create($validated);
 
-        $this->handleFileUploads($request, $datoFiscal);
+        $this->handleFileUploads($request, $datoFiscal, $validated['password_csd'] ?? null);
 
         return redirect()->route('tenant.facturacion.configuracion.datos-fiscales.index')->with('success', 'Datos fiscales creados exitosamente.');
     }
@@ -74,7 +77,7 @@ class DatoFiscalController extends Controller
 
         $datoFiscal->update($validated);
 
-        $this->handleFileUploads($request, $datoFiscal);
+        $this->handleFileUploads($request, $datoFiscal, $validated['password_csd'] ?? $datoFiscal->password_csd);
 
         return redirect()->route('tenant.facturacion.configuracion.datos-fiscales.index')->with('success', 'Datos fiscales guardados exitosamente.');
     }
@@ -82,11 +85,12 @@ class DatoFiscalController extends Controller
     public function destroy(DatoFiscal $datoFiscal): RedirectResponse
     {
         // El TenantScope en el modelo previene el borrado de datos de otros tenants.
-        if ($datoFiscal->path_cer) {
-            Storage::delete($datoFiscal->path_cer);
+        // Se corrige el nombre de la columna para que coincida con la migración.
+        if ($datoFiscal->path_cer_pem) {
+            Storage::delete($datoFiscal->path_cer_pem);
         }
-        if ($datoFiscal->path_key) {
-            Storage::delete($datoFiscal->path_key);
+        if ($datoFiscal->path_key_pem) {
+            Storage::delete($datoFiscal->path_key_pem);
         }
 
         $datoFiscal->delete();
@@ -95,13 +99,56 @@ class DatoFiscalController extends Controller
             ->with('success', 'Datos fiscales eliminados exitosamente.');
     }
 
-    private function handleFileUploads(Request $request, DatoFiscal $datoFiscal): void
+    /**
+     * Maneja la subida, validación y almacenamiento de los archivos CSD.
+     * Extrae datos del certificado y los guarda en el modelo.
+     *
+     * @throws ValidationException
+     */
+    private function handleFileUploads(StoreDatoFiscalRequest $request, DatoFiscal $datoFiscal, ?string $password): void
     {
         $tenantId = $datoFiscal->tenant_id;
         $updateData = [];
+        $hasCer = $request->hasFile('archivo_cer');
+        $hasKey = $request->hasFile('archivo_key');
 
-        if ($request->hasFile('archivo_cer')) $updateData['path_cer'] = $request->file('archivo_cer')->store("tenants/{$tenantId}/csd");
-        if ($request->hasFile('archivo_key')) $updateData['path_key'] = $request->file('archivo_key')->store("tenants/{$tenantId}/csd");
+        // Si se sube un archivo, se requiere el otro y la contraseña.
+        if (($hasCer || $hasKey) && (!$hasCer || !$hasKey || !$password)) {
+            throw ValidationException::withMessages([
+                'archivo_cer' => 'Para actualizar los CSD, debe proporcionar el archivo .cer, el .key y la contraseña.',
+            ]);
+        }
+
+        // Si no se suben nuevos archivos, no hay nada que hacer.
+        if (!$hasCer && !$hasKey) {
+            return;
+        }
+
+        try {
+            // Usamos la librería phpcfdi/credentials para validar los archivos antes de guardarlos.
+            $credential = Credential::openFiles(
+                $request->file('archivo_cer')->getRealPath(),
+                $request->file('archivo_key')->getRealPath(),
+                $password
+            );
+
+            // Verificamos que el RFC del certificado coincida con el del formulario.
+            if ($credential->certificate()->rfc() !== $request->input('rfc')) {
+                throw ValidationException::withMessages(['rfc' => 'El RFC del certificado no coincide con el RFC proporcionado.']);
+            }
+
+            // Si la validación es exitosa, extraemos los datos y preparamos la actualización.
+            $updateData['no_certificado'] = $credential->certificate()->serialNumber()->bytes();
+            $updateData['razon_social'] = $credential->certificate()->legalName();
+            $updateData['valido_desde'] = $credential->certificate()->validFrom();
+            $updateData['valido_hasta'] = $credential->certificate()->validTo();
+            $updateData['path_cer_pem'] = $request->file('archivo_cer')->store("tenants/{$tenantId}/csd");
+            $updateData['path_key_pem'] = $request->file('archivo_key')->store("tenants/{$tenantId}/csd");
+
+        } catch (Throwable $e) {
+            // Si algo falla (contraseña incorrecta, archivos no válidos), lanzamos una excepción de validación.
+            throw ValidationException::withMessages(['password_csd' => 'La contraseña del CSD es incorrecta o los archivos .cer y .key no son válidos o no se corresponden.']);
+        }
 
         if (!empty($updateData)) $datoFiscal->update($updateData);
     }

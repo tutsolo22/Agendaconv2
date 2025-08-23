@@ -245,15 +245,17 @@ Para garantizar la escalabilidad y la organización del código, el proyecto ado
     *   **API-First**: El módulo se basa en un enfoque "API-First". El frontend (vistas de Blade) es ligero y consume una API interna para obtener todos los datos necesarios de forma asíncrona.
     *   **Servicio de Catálogos (Optimizado)**: Se creó `App\Modules\Facturacion\Services\SatCatalogService` para centralizar el acceso a los catálogos del SAT. **Este servicio fue refactorizado para consultar una base de datos dedicada (`sat_*` tables) en lugar de procesar archivos Excel en cada petición.** Esta optimización resulta en una carga casi instantánea de los catálogos en el frontend.
     *   **API de Catálogos**: El controlador `App\Modules\Facturacion\Http\Controllers\Api\CatalogosApiController` expone los catálogos del SAT y otras búsquedas (como clientes) a través de endpoints seguros y protegidos por el middleware del tenant.
-    *   **Estructura de Controladores**: Para una mejor organización y escalabilidad, los controladores se han agrupado en subdirectorios temáticos: `app/Modules/Facturacion/Http/Controllers/Cfdi_40/` para la facturación general, `.../Pago/` para complementos de pago, y `.../Configuracion/` para la gestión de PACs, series y datos fiscales.
+    *   **Arquitectura de Servicios (Inversión de Dependencias)**: La lógica de negocio está encapsulada en `FacturacionService`. Este servicio delega la responsabilidad de la comunicación con el PAC a un servicio de timbrado inyectado que implementa la interfaz `TimbradoServiceInterface`. Esto permite cambiar de proveedor de timbrado (PAC) modificando una sola línea en el `FacturacionServiceProvider`, sin afectar el resto del código.
+    *   **Estructura de Controladores**: Para una mejor organización y escalabilidad, los controladores se han agrupado en subdirectorios temáticos: `app/Modules/Facturacion/Http/Controllers/Cfdi_40/`, `.../Complemento_Pago/`, y `.../Configuracion/`.
     *   **Frontend Dinámico**: La vista de creación de CFDI (`facturacion::cfdis.create`) utiliza JavaScript para llamar a la API y poblar dinámicamente los campos `<select>` (Formas de Pago, Métodos de Pago, Uso de CFDI, etc.) y para implementar buscadores avanzados con Tom-Select (para Clientes y Productos/Servicios).
+    *   **Validación Robusta**: Se utiliza un `FormRequest` (`StoreCfdiRequest`) dedicado que implementa reglas de validación estrictas para CFDI 4.0, incluyendo reglas personalizadas para el formato del RFC.
     *   **Seguridad de Credenciales**: Los datos sensibles como los Certificados de Sello Digital (CSD) y las credenciales del PAC se gestionan en la sección de "Configuración" del módulo y se almacenan de forma segura.
 *   **Funcionalidades Implementadas**:
     *   CRUD para Datos Fiscales del emisor (CSD).
-    *   CRUD para Proveedores de Timbrado (PACs).
-    *   CRUD para Series y Folios.
-    *   Formulario de creación de CFDI con carga dinámica de catálogos y búsqueda de clientes.
-    *   Menú de navegación reorganizado y específico para el módulo.
+    *   CRUD completo para Proveedores de Timbrado (PACs).
+    *   CRUD completo para Series y Folios, con distinción por tipo de comprobante.
+    *   Formulario de creación de CFDI 4.0 con carga dinámica de catálogos y búsqueda de clientes.
+    *   CRUD completo para la gestión de borradores de Complementos de Pago, con búsqueda dinámica de facturas pendientes.
 *   **Tablas de Base de Datos**: `facturacion_cfdi`, `facturacion_pagos`, `facturacion_series_folios`, `facturacion_datos_fiscales`, `facturacion_pacs`.
 
 ---
@@ -277,3 +279,20 @@ La gestión de archivos se divide en dos categorías para mantener la organizaci
 *   **Acceso en Código**:
     *   **Guardado**: `Storage::disk('public')->put($ruta, $contenido);`
     *   **Generación de URL**: `Storage::url($ruta_guardada_en_db);`
+
+
+## 12. MÓDULO DE NOTIFICACIONES
+
+Se ha implementado un sistema de notificaciones por correo electrónico para el envío de comprobantes fiscales.
+
+*   **Servicio de Correo:** Se creó el servicio `App\Modules\Facturacion\Services\ComprobanteEmailService` que se encarga de la lógica de envío de correos.
+*   **Mailable:** Se utiliza la clase `App\Modules\Facturacion\Mail\ComprobanteMail` para definir el contenido del correo y los archivos adjuntos.
+*   **Plantilla de Correo:** Se creó una plantilla de Blade en `resources/views/tenant/modules/facturacion/emails/comprobante.blade.php` para el cuerpo del correo.
+*   **Servicio de PDF:** Se creó el servicio `App\Modules\Facturacion\Services\PdfService` para generar la representación impresa (PDF) de los CFDI.
+*   **Integración:** El `FacturacionService` ha sido actualizado para utilizar estos servicios y enviar automáticamente los comprobantes por correo electrónico después de ser timbrados.
+
+---
+
+## Actualización en Módulo de Facturación V4
+
+*   **Integración con EDICOM para Retenciones:** Se ha completado la integración con el PAC EDICOM para el timbrado de comprobantes de retenciones. El servicio `App\Modules\Facturacion\Services\Edicom\EdicomRetencionService` ha sido actualizado para utilizar el servicio web de EDICOM en lugar de la simulación.

@@ -1,11 +1,17 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Modules\Facturacion\Http\Controllers\Cfdi_40\CfdiController;
 use App\Modules\Facturacion\Http\Controllers\Complemento_Pago\PagoController;
 use App\Modules\Facturacion\Http\Controllers\Configuracion\DatoFiscalController;
+use App\Modules\Facturacion\Http\Controllers\Retencion\RetencionController;
 use App\Modules\Facturacion\Http\Controllers\Configuracion\PacController;
 use App\Modules\Facturacion\Http\Controllers\Configuracion\SerieFolioController;
+use App\Modules\Facturacion\Http\Controllers\Api\CatalogosApiController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('api/catalogos', [CatalogosApiController::class, 'getAll'])->name('api.catalogos');
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -22,23 +28,33 @@ Route::get('cfdis/create-credit-note/{factura}', [CfdiController::class, 'create
 Route::get('cfdis/create-global', [CfdiController::class, 'createGlobal'])->name('cfdis.create-global');
 Route::get('cfdis/search-ventas', [CfdiController::class, 'searchVentas'])->name('cfdis.search-ventas');
 Route::post('cfdis/store-global', [CfdiController::class, 'storeGlobal'])->name('cfdis.store-global');
+
+// Rutas para descarga de archivos
+Route::get('cfdis/{cfdi}/pdf', [CfdiController::class, 'downloadPdf'])->name('cfdis.download.pdf');
+Route::get('cfdis/{cfdi}/xml', [CfdiController::class, 'downloadXml'])->name('cfdis.download.xml');
+Route::post('cfdis/{cfdi}/cancelar', [CfdiController::class, 'cancelar'])->name('cfdis.cancelar');
+
+
 Route::resource('cfdis', CfdiController::class);
 
 // Rutas de Complementos de Pago
 Route::get('pagos/search-invoices', [PagoController::class, 'searchInvoices'])->name('pagos.search.invoices');
+Route::post('pagos/{pago}/timbrar', [PagoController::class, 'timbrar'])->name('pagos.timbrar');
+Route::post('pagos/{pago}/cancelar', [PagoController::class, 'cancelar'])->name('pagos.cancelar');
+Route::get('pagos/{pago}/xml', [PagoController::class, 'downloadXml'])->name('pagos.download.xml');
+Route::get('pagos/{pago}/pdf', [PagoController::class, 'downloadPdf'])->name('pagos.download.pdf');
+
 Route::resource('pagos', PagoController::class);
+
+// Grupo de rutas para Retenciones (Nuevo)
+Route::prefix('retenciones')->name('retenciones.')->group(function () {
+    Route::resource('/', RetencionController::class)->parameters(['' => 'retencion']);
+});
 
 // Rutas de Configuración del Módulo
 Route::prefix('configuracion')->name('configuracion.')->group(function () {
-
-    // Rutas de Datos Fiscales
-    Route::get('datos-fiscales', [DatoFiscalController::class, 'index'])->name('datos-fiscales.index');
-    Route::get('datos-fiscales/create', [DatoFiscalController::class, 'create'])->name('datos-fiscales.create');
-    Route::post('datos-fiscales', [DatoFiscalController::class, 'store'])->name('datos-fiscales.store');
-    Route::get('datos-fiscales/{datoFiscal}/edit', [DatoFiscalController::class, 'edit'])->name('datos-fiscales.edit');
-    Route::put('datos-fiscales/{datoFiscal}', [DatoFiscalController::class, 'update'])->name('datos-fiscales.update');
-    Route::delete('datos-fiscales/{datoFiscal}', [DatoFiscalController::class, 'destroy'])->name('datos-fiscales.destroy');
-
+    // Refactorizado a Route::resource para mayor claridad
+    Route::resource('datos-fiscales', DatoFiscalController::class);
     Route::resource('pacs', PacController::class);
     Route::resource('series-folios', SerieFolioController::class);
 });

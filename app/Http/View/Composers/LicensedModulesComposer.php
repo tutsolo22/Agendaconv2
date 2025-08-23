@@ -32,15 +32,28 @@ class LicensedModulesComposer
                 $licencias = Licencia::where('tenant_id', $tenantId)
                     ->where('is_active', true)
                     ->where('fecha_fin', '>', now())
-                    ->with('modulo') // Carga ansiosa para optimizar
+                    ->with('modulo')
                     ->get();
 
-                // Extraer solo los módulos únicos de las licencias
-                $licensedModules = $licencias->map->modulo->filter()->unique('id');
+                $licensedModules = collect();
+                foreach ($licencias as $licencia) {
+                    if ($licencia->modulo) {
+                        $module = $licencia->modulo;
+                        // Si el submenu es una cadena, lo decodificamos manualmente.
+                        // Esto es un workaround porque el casteo no se está aplicando automáticamente.
+                        if (is_string($module->getRawOriginal('submenu'))) {
+                            $module->setAttribute('submenu', json_decode($module->getRawOriginal('submenu'), true));
+                        }
+                        $licensedModules->push($module);
+                    }
+                }
+                $licensedModules = $licensedModules->unique('id');
             }
         }
 
         // Pasamos todas las variables a la vista
+                        // Pasamos todas las variables a la vista
         $view->with(compact('licensedModules', 'isSuperAdmin', 'isTenantAdmin', 'user'));
     }
 }
+   

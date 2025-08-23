@@ -22,4 +22,8 @@ si desea adquirirla
 
 Ahora necesito implementar la lógica para guardar el borrador del CFDI en la base de datos. ¿Puedes generar el método `store` en `CfdiController`?
 
+
 La nueva columna "Producto" que añadí es un campo de texto simple. Para mejorar la experiencia del usuario, podrías convertir ese campo en un buscador de productos de tu propio inventario. Al seleccionar un producto local, el sistema podría autocompletar la "Descripción", la "Clave Prod/Serv" del SAT y el "Valor Unitario", agilizando enormemente el proceso de facturación.
+
+la forma de ver los modulos es por la licencia que tengan
+hacer una funcion que valide la licencia y mostrar los modulos

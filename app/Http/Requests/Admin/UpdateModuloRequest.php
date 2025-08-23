@@ -23,6 +23,7 @@ class UpdateModuloRequest extends FormRequest
             'descripcion' => ['nullable', 'string'],
             'icono' => ['nullable', 'string', 'max:100'],
             'is_active' => ['sometimes', 'boolean'],
+            'submenu' => ['nullable', 'json'],
         ];
     }
 }

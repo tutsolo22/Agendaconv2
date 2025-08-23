@@ -90,6 +90,11 @@
                             <i class="fa-solid fa-file-pdf me-1"></i> PDF
                         </a>
                     </div>
+                    @if($facturacion->status === 'timbrado')
+                        <button type="button" class="btn btn-warning mt-2 w-100" data-bs-toggle="modal" data-bs-target="#cancelarCfdiModal">
+                            <i class="fa-solid fa-ban me-2"></i>Cancelar CFDI
+                        </button>
+                    @endif
                 </div>
                 @endif
             </div>
@@ -97,3 +102,69 @@
     </div>
 
 </x-layouts.app>
+
+{{-- Solo renderizar el modal y el script si el CFDI se puede cancelar --}}
+@if($facturacion->status === 'timbrado')
+<!-- Modal de Cancelación -->
+<div class="modal fade" id="cancelarCfdiModal" tabindex="-1" aria-labelledby="cancelarCfdiModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('tenant.facturacion.cfdis.cancelar', $facturacion) }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="cancelarCfdiModalLabel">Cancelar CFDI: {{ $facturacion->serie }}-{{ $facturacion->folio }}</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Atención:</strong> Este proceso es irreversible. Al confirmar, se enviará la solicitud de cancelación al SAT.
+                    </div>
+                    <div class="mb-3">
+                        <label for="motivo" class="form-label">Motivo de Cancelación <span class="text-danger">*</span></label>
+                        <select name="motivo" id="motivo" class="form-select" required>
+                            <option value="" selected disabled>Seleccione un motivo...</option>
+                            <option value="01">01 - Comprobante emitido con errores con relación</option>
+                            <option value="02">02 - Comprobante emitido con errores sin relación</option>
+                            <option value="03">03 - No se llevó a cabo la operación</option>
+                            <option value="04">04 - Operación nominativa relacionada en una factura global</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 d-none" id="folioSustitucionContainer">
+                        <label for="folio_sustitucion" class="form-label">Folio Fiscal (UUID) que Sustituye <span class="text-danger">*</span></label>
+                        <input type="text" name="folio_sustitucion" id="folio_sustitucion" class="form-control" placeholder="Ingrese el UUID del nuevo CFDI que lo reemplaza">
+                        <div class="form-text">Este campo es obligatorio cuando el motivo es "01".</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Cancelación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    // Este script es específico para la vista show.blade.php
+    document.addEventListener('DOMContentLoaded', function () {
+        const motivoSelect = document.getElementById('motivo');
+        const folioSustitucionContainer = document.getElementById('folioSustitucionContainer');
+        const folioSustitucionInput = document.getElementById('folio_sustitucion');
+
+        if (motivoSelect) {
+            motivoSelect.addEventListener('change', function() {
+                if (this.value === '01') {
+                    folioSustitucionContainer.classList.remove('d-none');
+                    folioSustitucionInput.required = true;
+                } else {
+                    folioSustitucionContainer.classList.add('d-none');
+                    folioSustitucionInput.required = false;
+                    folioSustitucionInput.value = '';
+                }
+            });
+        }
+    });
+</script>
+@endpush
+@endif

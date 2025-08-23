@@ -14,19 +14,21 @@ class Pac extends Model
 
     protected $fillable = [
         'nombre',
+        'driver', // Campo nuevo para identificar el servicio (ej: 'edicom', 'sw_sapiens')
         'rfc',
         'url_produccion',
         'url_pruebas',
-        'usuario',
-        'password',
+        'credentials', // Campo nuevo para almacenar las credenciales en formato JSON
         'is_active',
     ];
 
-    protected function password(): Attribute
-    {
-        return Attribute::make(
-            set: fn ($value) => encrypt($value),
-            get: fn ($value) => decrypt($value)
-        );
-    }
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'is_active' => 'boolean',
+        'credentials' => 'encrypted:array', // Encripta el JSON completo para máxima seguridad
+    ];
 }

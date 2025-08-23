@@ -22,6 +22,7 @@ class StoreModuloRequest extends FormRequest
             'icono' => ['nullable', 'string', 'max:100'],
             // 'sometimes' asegura que solo se valide si está presente en la petición.
             'is_active' => ['sometimes', 'boolean'],
+            'submenu' => ['nullable', 'json'],
         ];
     }
 }

@@ -1,5 +1,15 @@
 @csrf
 <div class="row">
+    <div class="col-md-4 mb-3">
+        <label for="driver" class="form-label">Proveedor (Driver) <span class="text-danger">*</span></label>
+        <select name="driver" id="driver" class="form-select @error('driver') is-invalid @enderror" required @if($pac->exists) disabled @endif>
+            <option value="">Seleccione un proveedor...</option>
+            @foreach($supportedDrivers as $driverKey => $driverName)
+                <option value="{{ $driverKey }}" @selected(old('driver', $pac->driver) == $driverKey)>{{ $driverName }}</option>
+            @endforeach
+        </select>
+        @if($pac->exists) <input type="hidden" name="driver" value="{{ $pac->driver }}"> @endif
+    </div>
     <div class="col-md-8 mb-3">
         <label for="nombre" class="form-label">Nombre del Proveedor <span class="text-danger">*</span></label>
         <input type="text" name="nombre" id="nombre" class="form-control @error('nombre') is-invalid @enderror" value="{{ old('nombre', $pac->nombre ?? '') }}" required>
@@ -25,16 +35,26 @@
     </div>
 </div>
 
-<div class="row">
+<!-- Credenciales para EDICOM -->
+<div id="edicom-credentials" class="row d-none">
     <div class="col-md-6 mb-3">
-        <label for="usuario" class="form-label">Usuario</label>
-        <input type="text" name="usuario" id="usuario" class="form-control @error('usuario') is-invalid @enderror" value="{{ old('usuario', $pac->usuario ?? '') }}">
-        @error('usuario') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <label for="credentials_user" class="form-label">Usuario</label>
+        <input type="text" name="credentials[user]" id="credentials_user" class="form-control @error('credentials.user') is-invalid @enderror" value="{{ old('credentials.user', $pac->credentials['user'] ?? '') }}">
+        @error('credentials.user') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
     <div class="col-md-6 mb-3">
-        <label for="password" class="form-label">Contraseña @if(!$pac->exists)<span class="text-danger">*</span>@endif</label>
-        <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" placeholder="{{ $pac->exists ? 'Dejar en blanco para no cambiar' : '' }}" @if(!$pac->exists) required @endif>
-        @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <label for="credentials_password" class="form-label">Contraseña @if(!$pac->exists)<span class="text-danger">*</span>@endif</label>
+        <input type="password" name="credentials[password]" id="credentials_password" class="form-control @error('credentials.password') is-invalid @enderror" placeholder="{{ $pac->exists ? 'Dejar en blanco para no cambiar' : '' }}">
+        @error('credentials.password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+    </div>
+</div>
+
+<!-- Credenciales para SW Sapiens -->
+<div id="sw_sapiens-credentials" class="row d-none">
+    <div class="col-md-12 mb-3">
+        <label for="credentials_token" class="form-label">Token de Autenticación</label>
+        <input type="text" name="credentials[token]" id="credentials_token" class="form-control @error('credentials.token') is-invalid @enderror" value="{{ old('credentials.token', $pac->credentials['token'] ?? '') }}">
+        @error('credentials.token') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 </div>
 
@@ -49,3 +69,29 @@
         <i class="fa-solid fa-save me-2"></i>Guardar Proveedor
     </button>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const driverSelect = document.getElementById('driver');
+        const edicomFields = document.getElementById('edicom-credentials');
+        const swSapiensFields = document.getElementById('sw_sapiens-credentials');
+
+        function toggleCredentialFields() {
+            const selectedDriver = driverSelect.value;
+
+            edicomFields.classList.add('d-none');
+            swSapiensFields.classList.add('d-none');
+
+            if (selectedDriver === 'edicom' || selectedDriver === 'formas_digitales') {
+                edicomFields.classList.remove('d-none');
+            } else if (selectedDriver === 'sw_sapiens') {
+                swSapiensFields.classList.remove('d-none');
+            }
+        }
+
+        driverSelect.addEventListener('change', toggleCredentialFields);
+        toggleCredentialFields(); // Ejecutar al cargar la página para el estado inicial
+    });
+</script>
+@endpush

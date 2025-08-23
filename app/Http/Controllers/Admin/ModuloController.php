@@ -29,6 +29,10 @@ class ModuloController extends Controller
         $data = $request->validated();
         // El checkbox no se envía si no está marcado, así que lo manejamos explícitamente.
         $data['is_active'] = $request->has('is_active');
+        
+        if (isset($data['submenu'])) {
+            $data['submenu'] = json_decode($data['submenu'], true);
+        }
 
         Modulo::create($data);
 
@@ -45,6 +49,10 @@ class ModuloController extends Controller
     {
         $data = $request->validated();
         $data['is_active'] = $request->has('is_active');
+
+        if (isset($data['submenu'])) {
+            $data['submenu'] = json_decode($data['submenu'], true);
+        }
 
         $modulo->update($data);
 

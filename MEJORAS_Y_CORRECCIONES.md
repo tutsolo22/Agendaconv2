@@ -74,6 +74,26 @@ Esta sección detalla la solución a problemas específicos encontrados durante 
     3.  Se restauró la llamada a `await getCatalogos()` dentro de la función de carga, asegurando que los datos se soliciten a la API antes de intentar poblar el `select`.
 *   **Resultado**: El script ahora se ejecuta correctamente, los catálogos se cargan de forma asíncrona y el campo "Régimen Fiscal" funciona como se espera tanto en el modo de creación como en el de edición, seleccionando automáticamente el valor guardado cuando corresponde.
 
+### 3.4. Definición de Ruta para Búsqueda de Facturas
+*   **Síntoma**: Al intentar crear un complemento de pago, la aplicación lanzaba un error `Route [tenant.facturacion.pagos.search.invoices] not defined.`.
+*   **Diagnóstico**: La ruta para `pagos/search-invoices` había sido definida dentro de un grupo de rutas (`Route::prefix('configuracion')->name('configuracion.')`). Esto causaba que Laravel le asignara automáticamente el nombre `tenant.facturacion.configuracion.pagos.search.invoices`, que no coincidía con el que la vista estaba buscando.
+*   **Solución**: Se movió la definición de la ruta fuera del grupo de configuración en el archivo `app/Modules/Facturacion/Routes/web.php`. Al colocarla en el nivel superior del archivo de rutas del módulo, adquirió el nombre correcto (`tenant.facturacion.pagos.search.invoices`) y el error fue solucionado.
+
+### 3.5. Desincronización de Base de Datos y Código
+*   **Síntoma 1**: Al cargar la página de creación de pagos, se producía un error SQL: `Unknown column 'tipo_comprobante' in 'where clause'`.
+*   **Diagnóstico 1**: El `PagoController` intentaba filtrar las series y folios por `tipo_comprobante = 'P'`, pero dicha columna no existía en la tabla `facturacion_series_folios`. El modelo y el controlador se habían actualizado, pero la base de datos no.
+*   **Solución 1**: Se creó y ejecutó una nueva migración para añadir la columna `tipo_comprobante` a la tabla `facturacion_series_folios`, sincronizando así el esquema de la base de datos con el código de la aplicación.
+
+*   **Síntoma 2**: Tras solucionar el primer problema, apareció un nuevo error SQL: `Unknown column 'descripcion' in 'field list'` al consultar la tabla `sat_cfdi_40_formas_pago`.
+*   **Diagnóstico 2**: El `PagoController` intentaba obtener la columna `descripcion` del catálogo de formas de pago. Sin embargo, la estructura de las tablas de catálogos del SAT utiliza el nombre de columna `texto` para las descripciones.
+*   **Solución 2 (Temporal)**: Para poder seguir avanzando, se deshabilitó temporalmente la consulta en el controlador, reemplazándola por un arreglo vacío. La solución definitiva (corregir el nombre de la columna en la consulta de `descripcion` a `texto`) queda pendiente.
+
+---
+### 3.6. Error de Namespace con la Función `tenant()`
+*   **Síntoma**: La aplicación lanzaba un error fatal `Undefined function 'App\Modules\Facturacion\Services\tenant'` al intentar resolver el servicio de timbrado en el `FacturacionServiceProvider`.
+*   **Diagnóstico**: El `FacturacionServiceProvider` se encuentra dentro de un `namespace`. Al llamar a la función `tenant()`, PHP la buscaba dentro de ese mismo namespace en lugar de buscarla en el espacio de nombres global de Laravel, donde realmente está definida.
+*   **Solución**: Se corrigió la llamada a la función en todas sus apariciones dentro del `ServiceProvider` anteponiendo una barra invertida (`\`). Por ejemplo, `tenant('id')` se convirtió en `\tenant('id')`. Esto le indica explícitamente a PHP que utilice la función del espacio de nombres global, solucionando el error de forma limpia y definitiva.
+
 ---
 
 ## 4. Refactorización y Mejoras de Arquitectura
@@ -87,6 +107,30 @@ Esta sección documenta las mejoras estructurales implementadas para aumentar la
     *   `Http/Controllers/Cfdi_40/Pago/`: Para el complemento de recepción de pagos.
     *   `Http/Controllers/Configuracion/`: Para todos los controladores relacionados con la configuración del módulo (PACs, Series, Datos Fiscales).
 *   **Beneficio**: La estructura del código ahora es más intuitiva, escalable y fácil de navegar.
+
+---
+
+## 5. Refactorización Arquitectónica del Módulo de Facturación
+
+*   **Problema**: La lógica para comunicarse con el Proveedor de Timbrado (PAC) estaba acoplada dentro del `FacturacionService`, lo que dificultaba el mantenimiento, las pruebas unitarias y un futuro cambio de proveedor. Además, las validaciones de los datos del CFDI no eran lo suficientemente estrictas para cumplir con todos los requisitos de la versión 4.0.
+
+*   **Solución Implementada**: Se realizó una refactorización profunda para adoptar patrones de diseño de software más robustos.
+    1.  **Desacoplamiento del Servicio de Timbrado**:
+        *   Se creó una interfaz `TimbradoServiceInterface` que define un contrato para cualquier servicio de timbrado.
+        *   Se creó una implementación concreta, `SWTimbradoService`, que contiene la lógica específica para comunicarse con el PAC "SW Sapiens".
+        *   Se modificó el `FacturacionServiceProvider` para registrar el "binding" entre la interfaz y su implementación, utilizando `$this->app->bind()`.
+        *   Se refactorizó el `FacturacionService` para que reciba la interfaz en su constructor (Inyección de Dependencias) y delegue la llamada de timbrado, enfocándose únicamente en la lógica de negocio.
+    2.  **Mejora de Validaciones**:
+        *   Se creó una regla de validación personalizada `App\Modules\Facturacion\Rules\Rfc.php` para validar el formato de RFC.
+        *   Se actualizó el `StoreCfdiRequest.php` para usar esta nueva regla y añadir otras validaciones de CFDI 4.0 (mayúsculas, existencia en catálogos, etc.).
+    3.  **Creación de Helpers**:
+        *   Se implementó la clase `App\Modules\Facturacion\Utils\SatCatalogs.php` para centralizar funciones útiles, como la limpieza de la razón social del receptor para eliminar sufijos como "S.A. de C.V.".
+
+*   **Beneficio**:
+    *   **Flexibilidad**: Cambiar de proveedor de timbrado ahora solo requiere crear una nueva clase de servicio y modificar una línea en el `ServiceProvider`.
+    *   **Mantenibilidad**: El código es más limpio y sigue el Principio de Responsabilidad Única.
+    *   **Robustez**: Las validaciones tempranas previenen errores de timbrado y aseguran la calidad de los datos.
+    *   **Testabilidad**: Es mucho más fácil realizar pruebas unitarias al poder "mockear" o simular el servicio de timbrado.
 
 ### 4.2. Implementación de un Sistema de Logging Modular
 *   **Problema**: Los errores de todos los módulos se registrarían en un único archivo `laravel.log`, dificultando la depuración.

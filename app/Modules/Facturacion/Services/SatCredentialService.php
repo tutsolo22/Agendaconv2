@@ -2,8 +2,8 @@
 
 namespace App\Modules\Facturacion\Services;
 
-use App\Modules\Facturacion\Models\DatoFiscal;
-use App\Modules\Facturacion\Models\Pac;
+use App\Modules\Facturacion\Models\Configuracion\DatoFiscal;
+use App\Modules\Facturacion\Models\Configuracion\Pac;
 use PhpCfdi\Credentials\Credential;
 use Exception;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +12,7 @@ class SatCredentialService
 {
     private ?DatoFiscal $datoFiscal = null;
     private ?Credential $credential = null;
+    private ?Pac $pacActivo = null;
 
     /**
      * Obtiene la configuración de datos fiscales del tenant.
@@ -22,7 +23,12 @@ class SatCredentialService
     public function getDatosFiscales(): DatoFiscal
     {
         if ($this->datoFiscal === null) {
-            $this->datoFiscal = DatoFiscal::firstOrFail();
+            // Usamos first() para poder lanzar una excepción más clara.
+            $datoFiscal = DatoFiscal::first();
+            if (!$datoFiscal) {
+                throw new Exception("No se han configurado los datos fiscales del emisor.");
+            }
+            $this->datoFiscal = $datoFiscal;
         }
         return $this->datoFiscal;
     }
@@ -35,11 +41,15 @@ class SatCredentialService
      */
     public function getPacActivo(): Pac
     {
-        $datoFiscal = $this->getDatosFiscales();
-        if (!$datoFiscal->pac || !$datoFiscal->pac->is_active) {
-            throw new Exception("No hay un Proveedor de Timbrado (PAC) activo y configurado.");
+        if ($this->pacActivo === null) {
+            $pac = Pac::where('is_active', true)->first();
+            if (!$pac) {
+                throw new Exception("No hay un Proveedor de Timbrado (PAC) activo y configurado.");
+            }
+            $this->pacActivo = $pac;
         }
-        return $datoFiscal->pac;
+
+        return $this->pacActivo;
     }
 
     /**
@@ -49,7 +59,11 @@ class SatCredentialService
      */
     public function getCertificadoPemContent(): string
     {
-        return Storage::get($this->getDatosFiscales()->path_cer_pem);
+        $path = $this->getDatosFiscales()->path_cer_pem;
+        if (!$path || !Storage::exists($path)) {
+            throw new Exception("El archivo del certificado (.cer.pem) no se encuentra.");
+        }
+        return Storage::get($path);
     }
 
     /**
@@ -59,6 +73,28 @@ class SatCredentialService
      */
     public function getLlavePrivadaPemContent(): string
     {
-        return Storage::get($this->getDatosFiscales()->path_key_pem);
+        $path = $this->getDatosFiscales()->path_key_pem;
+        if (!$path || !Storage::exists($path)) {
+            throw new Exception("El archivo de la llave privada (.key.pem) no se encuentra.");
+        }
+        return Storage::get($path);
+    }
+
+    /**
+     * Obtiene el objeto Credential que contiene el CSD.
+     *
+     * @return Credential
+     * @throws Exception
+     */
+    public function getCredential(): Credential
+    {
+        if ($this->credential === null) {
+            $datosFiscales = $this->getDatosFiscales();
+            $cerContent = $this->getCertificadoPemContent();
+            $keyContent = $this->getLlavePrivadaPemContent();
+            $password = $datosFiscales->password_csd;
+            $this->credential = Credential::create($cerContent, $keyContent, $password);
+        }
+        return $this->credential;
     }
 }
