@@ -2,6 +2,7 @@ import TomSelect from 'tom-select';
 import 'tom-select/dist/css/tom-select.bootstrap5.min.css';
 import { getCatalogos } from '../../../Config/catalogLoader.js'; // Importamos la función central
 import { populateSelect } from '../../../Utils/tomSelectHelper.js'; // Importamos el helper
+import { initClientSearchTomSelect, loadSeriesAndFolios } from '../shared/facturacion-common.js'; // Importamos funciones compartidas
 import '/resources/css/modules/facturacion/cfdi40/create.css';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -35,25 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE TOM-SELECT Y CATÁLOGOS ---
 
     function initTomSelects() {
-        tomSelects.cliente_id = new TomSelect('#cliente_id', {
-            valueField: 'id',
-            labelField: 'nombre_completo',
-            searchField: ['nombre_completo', 'rfc'],
-            placeholder: 'Escriba para buscar un cliente por nombre o RFC...',
-            create: false,
-            load: (query, callback) => {
-                if (query.length < 2) return callback();
-                fetch(`${window.apiUrls.searchClients}?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(json => callback(json))
-                    .catch(() => callback());
-            },
-            render: {
-                option: (item, escape) => `<div><span class="fw-bold">${escape(item.nombre_completo)}</span><div class="text-muted small">${escape(item.rfc)}</div></div>`,
-                item: (item, escape) => `<div>${escape(item.nombre_completo)} (${escape(item.rfc)})</div>`,
-                no_results: (data, escape) => `<div class="text-muted p-2">No se encontraron resultados. <a href="${window.createClientUrl}" target="_blank">Crear nuevo cliente</a></div>`,
-            },
-        });
+        tomSelects.cliente_id = initClientSearchTomSelect('cliente_id', window.apiUrls.searchClients, window.createClientUrl);
 
         // Inicializar otros selects que se poblarán después
         ['serie', 'forma_pago', 'metodo_pago', 'uso_cfdi'].forEach(id => {
@@ -84,47 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 populateSelect(tomSelects.relation_type, catalogos.tiposRelacion, { placeholder: 'Seleccione un Tipo de Relación' });
             }
 
-            // --- Carga de Series y Folios con manejo de errores ---
-            try {
-                const seriesRes = await fetch(window.apiUrls.series, fetchOptions);
-                const seriesData = await seriesRes.json();
-
-                if (!seriesRes.ok || !Array.isArray(seriesData) || seriesData.length === 0) {
-                    // Si la respuesta no es OK, o no es un array, o está vacío, mostramos el aviso.
-                    throw new Error('No hay series configuradas o hubo un error al cargarlas.');
-                }
-
-                // Si todo está bien, poblamos el selector.
-                populateSelect(tomSelects.serie, seriesData, {
-                    valueField: 'id',
-                    textField: 'serie',
-                    textTemplate: (item) => `Serie ${item.serie} (Folio: ${item.folio_actual})`,
-                    placeholder: 'Seleccione una Serie'
-                });
-
-            } catch (error) {
-                // Capturamos cualquier error (fetch, json parse, o el que lanzamos manualmente)
-                console.warn('No se pudieron cargar las series:', error.message);
-                tomSelects.serie.disable();
-                tomSelects.serie.clear();
-                tomSelects.serie.addOption({ value: '', text: 'No configurado' });
-
-                // Se busca el contenedor .mb-3 más cercano para inyectar la alerta.
-                const serieWrapper = document.getElementById('serie').closest('.mb-3');
-                if (serieWrapper) {
-                    const existingAlert = serieWrapper.querySelector('#serie-alert');
-                    if (existingAlert) existingAlert.remove();
-
-                    const alertHtml = `
-                        <div class="alert alert-warning alert-dismissible fade show mt-2" role="alert" id="serie-alert">
-                            <p class="mb-2 small">No hay series y folios configurados para facturar.</p>
-                            <a href="${window.createSerieUrl}" class="btn btn-primary btn-sm w-100">Configurar ahora</a>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    `;
-                    serieWrapper.insertAdjacentHTML('beforeend', alertHtml);
-                }
-            }
+            await loadSeriesAndFolios(tomSelects.serie, window.apiUrls.series, window.createSerieUrl);
         } catch (error) {
             console.error('Error final al procesar catálogos:', error.message);            Object.values(tomSelects).forEach(ts => {
                 ts.clear();

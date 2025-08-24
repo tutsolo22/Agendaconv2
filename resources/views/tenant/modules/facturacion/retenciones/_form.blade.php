@@ -9,13 +9,12 @@
         </select>
     </div>
     <div class="col-md-3">
-        <label for="serie_folio_id" class="form-label">Serie</label>
-        <select class="form-select" name="serie_folio_id" required>
-            @foreach ($series as $serie)
-                <option value="{{ $serie->id }}" @selected(old('serie_folio_id', $retencion->serie_folio_id ?? '') == $serie->id)>
-                    {{ $serie->serie }}
-                </option>
-            @endforeach
+        <label for="serie_folio_id" class="form-label">Serie y Folio</label>
+        <select class="form-select" id="serie_folio_id" name="serie_folio_id" required>
+            @if(isset($retencion) && $retencion->serie_folio_id)
+                <option value="{{ $retencion->serie_folio_id }}" selected>{{ $retencion->serie_folio->serie }}-{{ $retencion->serie_folio->folio }}</option>
+            @endif
+            {{-- Options will be loaded dynamically by TomSelect --}}
         </select>
     </div>
     <div class="col-md-3">
@@ -102,3 +101,65 @@
     <button type="submit" class="btn btn-primary">Guardar Borrador</button>
     <a href="{{ route('tenant.facturacion.retenciones.index') }}" class="btn btn-secondary">Cancelar</a>
 </div>
+
+<script type="module">
+    import TomSelect from 'tom-select';
+    import 'tom-select/dist/css/tom-select.bootstrap5.min.css';
+    import { initClientSearchSelect2, loadSeriesAndFolios } from '../../js/Modules/Facturacion/shared/facturacion-common.js';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Configuración de URLs para retenciones
+        window.retencionesConfig = {
+            urls: {
+                searchClients: '{{ route("tenant.api.facturacion.clientes.search") }}',
+                series: '{{ route("tenant.api.facturacion.series") }}',
+                createSerieUrl: '{{ route("tenant.facturacion.configuracion.series-folios.create") }}'
+            }
+        };
+
+        // Inicializar Select2 para clientes
+        const clienteSelect = $('#cliente_id');
+        initClientSearchSelect2(clienteSelect, window.retencionesConfig.urls.searchClients);
+
+        // Inicializar TomSelect para series y folios
+        const serieSelect = new TomSelect('#serie_folio_id', { placeholder: 'Cargando Series...' });
+        loadSeriesAndFolios(serieSelect, window.retencionesConfig.urls.series, window.retencionesConfig.urls.createSerieUrl);
+
+        // Lógica para añadir/eliminar impuestos (existente)
+        const impuestosContainer = document.getElementById('impuestos-container');
+        const addImpuestoBtn = document.getElementById('add-impuesto-btn');
+        let impuestoIndex = parseInt(impuestosContainer.dataset.initialIndex || 0);
+
+        addImpuestoBtn.addEventListener('click', addImpuestoRow);
+        impuestosContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-impuesto-btn')) {
+                e.target.closest('tr').remove();
+            }
+        });
+
+        function addImpuestoRow() {
+            const newRow = document.createElement('tr');
+            newRow.dataset.index = impuestoIndex;
+            newRow.innerHTML = `
+                <td><input type="number" step="0.01" name="impuestos[${impuestoIndex}][base_ret]" class="form-control base-ret" value="0.00" required></td>
+                <td>
+                    <select name="impuestos[${impuestoIndex}][impuesto]" class="form-select" required>
+                        <option value="01">01 - ISR</option>
+                        <option value="02">02 - IVA</option>
+                        <option value="03">03 - IEPS</option>
+                    </select>
+                </td>
+                <td>
+                    <select name="impuestos[${impuestoIndex}][tipo_pago_ret]" class="form-select" required>
+                        <option value="Pago provisional">Pago provisional</option>
+                        <option value="Pago definitivo">Pago definitivo</option>
+                    </select>
+                </td>
+                <td><input type="number" step="0.01" name="impuestos[${impuestoIndex}][monto_ret]" class="form-control monto-ret" value="0.00" required></td>
+                <td><button type="button" class="btn btn-danger btn-sm remove-impuesto-btn"><i class="fa-solid fa-trash"></i></button></td>
+            `;
+            document.getElementById('impuestos-table').querySelector('tbody').appendChild(newRow);
+            impuestoIndex++;
+        }
+    });
+</script>

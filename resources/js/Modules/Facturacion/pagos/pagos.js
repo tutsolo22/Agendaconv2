@@ -1,3 +1,7 @@
+import TomSelect from 'tom-select';
+import 'tom-select/dist/css/tom-select.bootstrap5.min.css';
+import { initClientSearchSelect2, loadSeriesAndFolios } from '../shared/facturacion-common.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     // Verificar si estamos en la página correcta
     const form = document.getElementById('payment-form');
@@ -15,25 +19,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const urls = config.urls || {};
 
     // Inicializar Select2 para clientes
-    clienteSelect.select2({
-        placeholder: 'Selecciona un cliente',
-        ajax: {
-            url: urls.searchClients,
-            dataType: 'json',
-            delay: 250,
-            processResults: function (data) {
-                return {
-                    results: $.map(data, function (item) {
-                        return {
-                            text: item.nombre_completo + ' (' + item.rfc + ')',
-                            id: item.id
-                        }
-                    })
-                };
-            },
-            cache: true
-        }
-    });
+    initClientSearchSelect2(clienteSelect, urls.searchClients);
+
+    // Inicializar TomSelect para series y folios
+    const serieSelect = new TomSelect('#serie_folio_id', { placeholder: 'Cargando Series...' });
+    loadSeriesAndFolios(serieSelect, urls.series, urls.createSerieUrl);
 
     // --- LÓGICA DE EVENTOS ---
 

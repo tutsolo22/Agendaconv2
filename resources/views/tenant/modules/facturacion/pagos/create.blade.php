@@ -22,11 +22,9 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="serie_folio_id" class="form-label">Serie</label>
-                        <select class="form-control" name="serie_folio_id" required>
-                            @foreach ($series as $serie)
-                                <option value="{{ $serie->id }}">{{ $serie->serie }}</option>
-                            @endforeach
+                        <label for="serie_folio_id" class="form-label">Serie y Folio</label>
+                        <select class="form-control" id="serie_folio_id" name="serie_folio_id" required>
+                            {{-- Options will be loaded dynamically by TomSelect --}}
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -94,7 +92,9 @@
             isNewRecord: true,
             urls: {
                 searchClients: '{{ route("tenant.documents.search.clients") }}',
-                searchInvoices: '{{ route("tenant.facturacion.pagos.search.invoices") }}'
+                searchInvoices: '{{ route("tenant.facturacion.pagos.search.invoices") }}',
+                series: '{{ route("tenant.api.facturacion.series") }}',
+                createSerieUrl: '{{ route("tenant.facturacion.configuracion.series-folios.create") }}'
             }
         };
     </script>
