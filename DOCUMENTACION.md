@@ -245,15 +245,17 @@ Para garantizar la escalabilidad y la organización del código, el proyecto ado
     *   **API-First**: El módulo se basa en un enfoque "API-First". El frontend (vistas de Blade) es ligero y consume una API interna para obtener todos los datos necesarios de forma asíncrona.
     *   **Servicio de Catálogos (Optimizado)**: Se creó `App\Modules\Facturacion\Services\SatCatalogService` para centralizar el acceso a los catálogos del SAT. **Este servicio fue refactorizado para consultar una base de datos dedicada (`sat_*` tables) en lugar de procesar archivos Excel en cada petición.** Esta optimización resulta en una carga casi instantánea de los catálogos en el frontend.
     *   **API de Catálogos**: El controlador `App\Modules\Facturacion\Http\Controllers\Api\CatalogosApiController` expone los catálogos del SAT y otras búsquedas (como clientes) a través de endpoints seguros y protegidos por el middleware del tenant.
-    *   **Estructura de Controladores**: Para una mejor organización y escalabilidad, los controladores se han agrupado en subdirectorios temáticos: `app/Modules/Facturacion/Http/Controllers/Cfdi_40/` para la facturación general, `.../Pago/` para complementos de pago, y `.../Configuracion/` para la gestión de PACs, series y datos fiscales.
+    *   **Arquitectura de Servicios (Inversión de Dependencias)**: La lógica de negocio está encapsulada en `FacturacionService`. Este servicio delega la responsabilidad de la comunicación con el PAC a un servicio de timbrado inyectado que implementa la interfaz `TimbradoServiceInterface`. Esto permite cambiar de proveedor de timbrado (PAC) modificando una sola línea en el `FacturacionServiceProvider`, sin afectar el resto del código.
+    *   **Estructura de Controladores**: Para una mejor organización y escalabilidad, los controladores se han agrupado en subdirectorios temáticos: `app/Modules/Facturacion/Http/Controllers/Cfdi_40/`, `.../Complemento_Pago/`, y `.../Configuracion/`.
     *   **Frontend Dinámico**: La vista de creación de CFDI (`facturacion::cfdis.create`) utiliza JavaScript para llamar a la API y poblar dinámicamente los campos `<select>` (Formas de Pago, Métodos de Pago, Uso de CFDI, etc.) y para implementar buscadores avanzados con Tom-Select (para Clientes y Productos/Servicios).
+    *   **Validación Robusta**: Se utiliza un `FormRequest` (`StoreCfdiRequest`) dedicado que implementa reglas de validación estrictas para CFDI 4.0, incluyendo reglas personalizadas para el formato del RFC.
     *   **Seguridad de Credenciales**: Los datos sensibles como los Certificados de Sello Digital (CSD) y las credenciales del PAC se gestionan en la sección de "Configuración" del módulo y se almacenan de forma segura.
 *   **Funcionalidades Implementadas**:
     *   CRUD para Datos Fiscales del emisor (CSD).
-    *   CRUD para Proveedores de Timbrado (PACs).
-    *   CRUD para Series y Folios.
-    *   Formulario de creación de CFDI con carga dinámica de catálogos y búsqueda de clientes.
-    *   Menú de navegación reorganizado y específico para el módulo.
+    *   CRUD completo para Proveedores de Timbrado (PACs).
+    *   CRUD completo para Series y Folios, con distinción por tipo de comprobante.
+    *   Formulario de creación de CFDI 4.0 con carga dinámica de catálogos y búsqueda de clientes.
+    *   CRUD completo para la gestión de borradores de Complementos de Pago, con búsqueda dinámica de facturas pendientes.
 *   **Tablas de Base de Datos**: `facturacion_cfdi`, `facturacion_pagos`, `facturacion_series_folios`, `facturacion_datos_fiscales`, `facturacion_pacs`.
 
 ---
@@ -277,3 +279,70 @@ La gestión de archivos se divide en dos categorías para mantener la organizaci
 *   **Acceso en Código**:
     *   **Guardado**: `Storage::disk('public')->put($ruta, $contenido);`
     *   **Generación de URL**: `Storage::url($ruta_guardada_en_db);`
+
+
+## 12. MÓDULO DE NOTIFICACIONES
+
+Se ha implementado un sistema de notificaciones por correo electrónico para el envío de comprobantes fiscales.
+
+*   **Servicio de Correo:** Se creó el servicio `App\Modules\Facturacion\Services\ComprobanteEmailService` que se encarga de la lógica de envío de correos.
+*   **Mailable:** Se utiliza la clase `App\Modules\Facturacion\Mail\ComprobanteMail` para definir el contenido del correo y los archivos adjuntos.
+*   **Plantilla de Correo:** Se creó una plantilla de Blade en `resources/views/tenant/modules/facturacion/emails/comprobante.blade.php` para el cuerpo del correo.
+*   **Servicio de PDF:** Se creó el servicio `App\Modules\Facturacion\Services\PdfService` para generar la representación impresa (PDF) de los CFDI.
+*   **Integración:** El `FacturacionService` ha sido actualizado para utilizar estos servicios y enviar automáticamente los comprobantes por correo electrónico después de ser timbrados.
+
+---
+
+## Actualización en Módulo de Facturación V4
+
+*   **Integración con EDICOM para Retenciones:** Se ha completado la integración con el PAC EDICOM para el timbrado de comprobantes de retenciones. El servicio `App\Modules\Facturacion\Services\Edicom\EdicomRetencionService` ha sido actualizado para utilizar el servicio web de EDICOM en lugar de la simulación.
+---
+
+## 13. MÓDULO DE SALUD (PLAN DE ACCIÓN AMPLIADO)
+
+A continuación se detalla el plan de acción para el desarrollo del Módulo de Salud, una solución integral y flexible para consultorios, clínicas y hospitales.
+
+### Fase 1: Estructura y Configuración del Módulo (Completada)
+*   **Directorios del Módulo**: Creados en `app/Modules/Salud/`, `resources/views/tenant/modules/salud/` y `resources/js/Modules/Salud/`.
+*   **Service Provider**: Creado y registrado (`app/Modules/Salud/SaludServiceProvider.php`).
+*   **Logging**: Canal `salud` configurado en `config/logging.php`.
+
+### Fase 2: Base de Datos (Migraciones)
+*   **Nomenclatura**: Todas las tablas nuevas llevarán el prefijo `salud_`.
+*   **Recursos a Reutilizar**: Se utilizarán los modelos existentes `Cliente` (para pacientes) y `Sucursal` (para consultorios/ubicaciones).
+*   **Sub-módulo: Citas y Consultas**
+    *   `salud_profesionistas`: Para gestionar doctores/profesionales (nombre, especialidad, cédula, etc.).
+    *   `salud_servicios`: Catálogo de servicios o tratamientos (nombre, costo, duración).
+    *   `salud_horarios`: Disponibilidad de los profesionistas por sucursal y día.
+    *   `salud_citas`: Para agendar las citas.
+*   **Sub-módulo: Historial Clínico**
+    *   `salud_historiales_clinicos`: Registro maestro por paciente (`cliente_id`).
+    *   `salud_historial_entradas`: Cada consulta o evento genera una entrada en el historial (notas de evolución, diagnóstico).
+    *   `salud_signos_vitales`: Registros periódicos de peso, altura, presión arterial, ritmo cardíaco, etc., asociados a una entrada del historial.
+*   **Sub-módulo: Hospitalización (Licencia Especial)**
+    *   `salud_cuartos`: Catálogo de cuartos/habitaciones por sucursal.
+    *   `salud_camas`: Catálogo de camas por cuarto.
+    *   `salud_hospitalizaciones`: Registro de ingresos y egresos de pacientes, asociando paciente, cama, fechas y diagnóstico de ingreso.
+
+### Fase 3: Lógica de Backend
+*   **Modelos**: Crear modelos Eloquent para todas las tablas nuevas, asegurando el uso del trait `App\Traits\TenantScoped`.
+*   **Controladores**: Implementar la lógica CRUD para cada entidad (Profesionistas, Servicios, Citas, Historial, etc.).
+*   **Servicios**: Crear servicios para encapsular la lógica de negocio compleja:
+    *   `AgendaService`: Para buscar horarios disponibles y validar la creación de citas.
+    *   `HistorialService`: Para gestionar las entradas al historial clínico.
+    *   `HospitalizacionService`: Para gestionar ingresos, egresos y disponibilidad de camas.
+*   **Licenciamiento del Módulo de Hospitalización**:
+    *   Implementar una verificación en el `SaludServiceProvider` o un middleware dedicado.
+    *   Este comprobará si el tenant tiene una licencia específica y activa para "hospitalizacion" antes de registrar las rutas y vistas de dicho sub-módulo.
+    *   El `Super-Admin` será el único que pueda asignar esta licencia.
+
+### Fase 4: Lógica de Frontend
+*   **Vistas**: Desarrollar vistas Blade para todos los CRUDs.
+*   **Calendario de Citas**: Implementar un calendario interactivo (ej. FullCalendar) que consuma una API interna para mostrar y gestionar citas.
+*   **Gestión de Historial Clínico**: Crear la interfaz para que el profesionista pueda ver el historial completo del paciente y añadir nuevas entradas y signos vitales de forma sencilla.
+*   **Panel de Hospitalización**: Desarrollar un dashboard que muestre el estado de ocupación de los cuartos y camas, y permita gestionar los ingresos y egresos.
+
+### Fase 5: Funcionalidades Transversales
+*   **Almacenamiento de Archivos**: Utilizar el gestor de documentos existente para subir archivos (estudios, radiografías) a la ruta `storage/app/public/{tenant_id}/salud/cliente_{cliente_id}/`.
+*   **Permisos**: Definir roles (`Doctor`, `Recepcionista`, `Enfermero`) con `spatie/laravel-permission` para controlar el acceso a las diferentes secciones del módulo.
+*   **Auditoría**: Configurar `spatie/laravel-activitylog` para los modelos críticos del módulo.

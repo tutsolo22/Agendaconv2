@@ -3,6 +3,7 @@
 namespace App\Modules\Facturacion\Http\Controllers\Configuracion;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Facturacion\Http\Requests\StorePacRequest;
 use App\Modules\Facturacion\Models\Configuracion\Pac;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,28 +24,43 @@ class PacController extends Controller
      */
     public function create()
     {
-        // Pasamos una nueva instancia para consistencia en el formulario
-        $pac = new Pac();
-        return view('facturacion::pacs.create', compact('pac'));
+        return view('facturacion::pacs.create', [
+            'pac' => new Pac(),
+            'supportedDrivers' => $this->getSupportedDrivers(),
+        ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StorePacRequest $request)
     {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'rfc' => ['required', 'string', 'size:12,13', Rule::unique('facturacion_pacs', 'rfc')->where('tenant_id', tenant('id'))],
-            'url_produccion' => 'required|url',
-            'url_pruebas' => 'nullable|url',
-            'usuario' => 'nullable|string|max:255',
-            'password' => 'required|string|max:255',
-        ]);
+        $validated = $request->validated();
 
-        $validated['is_active'] = $request->has('is_active');
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, &$validated) {
+            // Si se marca este PAC como activo, desactivamos todos los demás.
+            if ($request->has('is_active')) {
+                Pac::query()->update(['is_active' => false]);
+            }
+            $validated['is_active'] = $request->has('is_active');
 
-        Pac::create($validated);
+            // Limpiamos las credenciales que no pertenecen al driver seleccionado.
+            $driver = $validated['driver'];
+            $credentials = $validated['credentials'];
+            $finalCredentials = [];
+
+            if ($driver === 'edicom' || $driver === 'formas_digitales') {
+                $finalCredentials['user'] = $credentials['user'];
+                $finalCredentials['password'] = $credentials['password'];
+            } elseif ($driver === 'sw_sapiens') {
+                $finalCredentials['token'] = $credentials['token'];
+            }
+
+            $validated['credentials'] = $finalCredentials;
+
+            Pac::create($validated);
+        });
+
 
         return redirect()->route('tenant.facturacion.configuracion.pacs.index')
             ->with('success', 'Proveedor (PAC) creado exitosamente.');
@@ -55,31 +71,45 @@ class PacController extends Controller
      */
     public function edit(Pac $pac)
     {
-        return view('facturacion::pacs.edit', compact('pac'));
+        return view('facturacion::pacs.edit', [
+            'pac' => $pac,
+            'supportedDrivers' => $this->getSupportedDrivers(),
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Pac $pac)
+    public function update(StorePacRequest $request, Pac $pac)
     {
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
-            'rfc' => ['required', 'string', 'size:12,13', Rule::unique('facturacion_pacs', 'rfc')->where('tenant_id', tenant('id'))->ignore($pac->id)],
-            'url_produccion' => 'required|url',
-            'url_pruebas' => 'nullable|url',
-            'usuario' => 'nullable|string|max:255',
-            'password' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
-        $validated['is_active'] = $request->has('is_active');
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $pac, &$validated) {
+            // Si se marca este PAC como activo, desactivamos todos los demás.
+            if ($request->has('is_active')) {
+                Pac::where('id', '!=', $pac->id)->update(['is_active' => false]);
+            }
+            $validated['is_active'] = $request->has('is_active');
 
-        // No actualizar la contraseña si el campo viene vacío
-        if (empty($validated['password'])) {
-            unset($validated['password']);
-        }
+            // Actualización inteligente de credenciales
+            $driver = $validated['driver'];
+            $newCredentials = $validated['credentials'];
+            $currentCredentials = $pac->credentials;
+            $finalCredentials = [];
 
-        $pac->update($validated);
+            if ($driver === 'edicom' || $driver === 'formas_digitales') {
+                $finalCredentials['user'] = $newCredentials['user'];
+                // Solo actualiza la contraseña si se proporcionó una nueva.
+                $finalCredentials['password'] = !empty($newCredentials['password'])
+                    ? $newCredentials['password']
+                    : ($currentCredentials['password'] ?? '');
+            } elseif ($driver === 'sw_sapiens') {
+                $finalCredentials['token'] = $newCredentials['token'];
+            }
+
+            $validated['credentials'] = $finalCredentials;
+            $pac->update($validated);
+        });
 
         return redirect()->route('tenant.facturacion.configuracion.pacs.index')
             ->with('success', 'Proveedor (PAC) actualizado exitosamente.');
@@ -94,5 +124,17 @@ class PacController extends Controller
 
         return redirect()->route('tenant.facturacion.configuracion.pacs.index')
             ->with('success', 'Proveedor (PAC) eliminado exitosamente.');
+    }
+
+    /**
+     * Devuelve la lista de drivers de PACs soportados.
+     */
+    private function getSupportedDrivers(): array
+    {
+        return [
+            'sw_sapiens' => 'SW Sapiens (Token)',
+            'edicom' => 'EDICOM (Usuario y Contraseña)',
+            'formas_digitales' => 'Formas Digitales (Usuario y Contraseña)',
+        ];
     }
 }

@@ -38,3 +38,6 @@ Route::prefix('facturacion')->name('facturacion.')->controller(CatalogosApiContr
 // --- RUTA DE DEPURACIÓN TEMPORAL ---
 // Úsala para verificar si el servicio está obteniendo las formas de pago correctamente.
 Route::get('/facturacion/debug/formas-pago', [CatalogosApiController::class, 'debugFormasPago'])->name('api.facturacion.debug.formas-pago');
+
+// --- RUTA DE DEPURACIÓN PARA RETENCIONES ---
+Route::get('/facturacion/debug/retenciones', [CatalogosApiController::class, 'debugRetenciones'])->name('api.facturacion.debug.retenciones');

@@ -7,7 +7,7 @@
 
     <div class="card">
         <div class="card-body">
-            <form method="POST" action="{{ route('admin.modulos.store') }}">
+            <form method="POST" action="{{ route('admin.modulos.store') }}" accept-charset="UTF-8">
                 @include('admin.modulos._form', ['submitText' => __('Crear Módulo')])
             </form>
         </div>

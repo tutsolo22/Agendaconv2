@@ -17,6 +17,11 @@
                     <a href="{{ route('tenant.facturacion.pagos.download.pdf', $pago) }}" class="btn btn-danger" title="Descargar PDF">
                         <i class="fa-solid fa-file-pdf me-2"></i> PDF
                     </a>
+                @elseif ($pago->status == 'borrador')
+                    <form action="{{ route('tenant.facturacion.pagos.timbrar', $pago) }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-success"><i class="fa-solid fa-check-circle me-2"></i>Timbrar Complemento</button>
+                    </form>
                 @endif
             </div>
         </div>
@@ -35,7 +40,7 @@
                 <div class="col-md-6">
                     <h5><i class="fa-solid fa-money-bill-wave me-2"></i>Datos del Pago</h5>
                     <p><strong>Fecha de Pago:</strong> {{ \Carbon\Carbon::parse($pago->fecha_pago)->format('d/m/Y H:i:s') }}</p>
-                    <p><strong>Forma de Pago:</strong> {{ $formasPago[$pago->forma_pago] ?? $pago->forma_pago }}</p>
+                    <p><strong>Forma de Pago:</strong> {{ $pago->forma_pago }} - {{ $formasPago[$pago->forma_pago] ?? 'Desconocida' }}</p>
                     <p><strong>Monto:</strong> ${{ number_format($pago->monto, 2) }} {{ $pago->moneda }}</p>
                     <p><strong>Status:</strong>
                         <span class="badge bg-{{ $pago->status == 'timbrado' ? 'success' : ($pago->status == 'cancelado' ? 'danger' : 'warning') }}">

@@ -23,11 +23,10 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="serie_folio_id" class="form-label">Serie</label>
-                        <select class="form-control" name="serie_folio_id" required>
-                            @foreach ($series as $serie)
-                                <option value="{{ $serie->id }}" @if($pago->serie_folio_id == $serie->id) selected @endif>{{ $serie->serie }}</option>
-                            @endforeach
+                        <label for="serie_folio_id" class="form-label">Serie y Folio</label>
+                        <select class="form-control" id="serie_folio_id" name="serie_folio_id" required>
+                            <option value="{{ $pago->serie_folio_id }}" selected>{{ $pago->serie }}-{{ $pago->folio }}</option>
+                            {{-- Options will be loaded dynamically by TomSelect --}}
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -117,12 +116,14 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {{-- Pasamos las rutas y configuración al script externo --}}
     <script>
-        window.pagosConfig = {
+                window.pagosConfig = {
             isNewRecord: false,
             initialAmount: {{ $pago->monto ?? 0 }},
             urls: {
                 searchClients: '{{ route("tenant.documents.search.clients") }}',
-                searchInvoices: '{{ route("tenant.facturacion.pagos.search.invoices") }}'
+                searchInvoices: '{{ route("tenant.facturacion.pagos.search.invoices") }}',
+                series: '{{ route("tenant.api.facturacion.series") }}',
+                createSerieUrl: '{{ route("tenant.facturacion.configuracion.series-folios.create") }}'
             }
         };
     </script>

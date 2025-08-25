@@ -2,81 +2,163 @@
 
 namespace App\Modules\Facturacion\Services;
 
-use App\Modules\Facturacion\Services\FacturacionService;
-use App\Modules\Facturacion\Services\FacturacionServiceTimbradoCfdi;
-use App\Modules\Facturacion\Services\PagoService;
-use App\Modules\Facturacion\Services\SatCredentialService;
-use App\Modules\Facturacion\Services\SatCatalogService;
+use App\Modules\Facturacion\Models\Configuracion\Pac;
+use App\Modules\Facturacion\Services\Contracts\CancelacionServiceInterface;
+use App\Modules\Facturacion\Services\Contracts\RetencionTimbradoServiceInterface;
+use App\Modules\Facturacion\Services\Contracts\PagoCancelacionServiceInterface;
+use App\Modules\Facturacion\Services\Contracts\PagoTimbradoServiceInterface;
+use App\Modules\Facturacion\Services\Contracts\TimbradoServiceInterface;
+use App\Modules\Facturacion\Services\Edicom\EdicomTimbradoService;
+use App\Modules\Facturacion\Services\Edicom\EdicomCancelacionService;
+use App\Modules\Facturacion\Services\Edicom\EdicomPagoCancelacionService;
+use App\Modules\Facturacion\Services\FormasDigitales\FormasDigitalesTimbradoService;
+use App\Modules\Facturacion\Services\FormasDigitales\FormasDigitalesCancelacionService;
+use App\Modules\Facturacion\Services\FormasDigitales\FormasDigitalesRetencionService;
+use App\Modules\Facturacion\Services\FormasDigitales\FormasDigitalesPagoCancelacionService;
+use App\Modules\Facturacion\Services\FormasDigitales\FormasDigitalesPagoTimbradoService;
+use App\Modules\Facturacion\Services\SWTimbradoService;
+use App\Modules\Facturacion\Services\SWCancelacionService; // Placeholder
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class FacturacionServiceProvider extends ServiceProvider
 {
     /**
-     * El directorio base del módulo.
-     *
-     * @var string
-     */
-    protected string $modulePath = __DIR__ . '/..';
-
-    /**
-     * Register services.
+     * Register any application services.
      */
     public function register(): void
     {
-        // Registramos SatCatalogService como un singleton para que se cree una sola vez
-        // por cada petición, optimizando la carga de catálogos.
-        $this->app->singleton(SatCatalogService::class, function ($app) {
-            return new SatCatalogService();
+        // Registramos los servicios principales como singletons para que se resuelvan una sola vez.
+        $this->app->singleton(CancelacionService::class);
+        $this->app->singleton(FacturacionService::class);
+        $this->app->singleton(SatCatalogService::class);
+        $this->app->singleton(SatCredentialService::class);
+        $this->app->singleton(ComprobanteEmailService::class); // Added
+        $this->app->singleton(PdfService::class); // Added
+        $this->app->singleton(PagoService::class);
+        $this->app->singleton(RetencionService::class);
+
+
+        // --- BINDING DINÁMICO DEL SERVICIO DE TIMBRADO ---
+        // Esta es la parte más importante. Permite que el sistema seleccione el PAC
+        // correcto según la configuración del tenant, haciendo el sistema flexible.
+        $this->app->bind(TimbradoServiceInterface::class, function ($app) {
+            $activeDriver = $this->getActivePacDriver('sw_sapiens');
+
+            // 3. Usamos un switch para instanciar la clase de servicio correcta.
+            //    Inyectamos SatCredentialService en cada uno, ya que todos lo necesitan.
+            switch (strtolower($activeDriver)) {
+                case 'edicom':
+                    return new EdicomTimbradoService($app->make(SatCredentialService::class));
+                case 'formas_digitales':
+                    return new FormasDigitalesTimbradoService($app->make(SatCredentialService::class));
+                case 'sw_sapiens':
+                default:
+                    return new SWTimbradoService($app->make(SatCredentialService::class));
+            }
         });
 
-        // Registramos el resto de los servicios del módulo como singletons.
-        // Laravel resolverá sus dependencias automáticamente (ej: PagoService necesita SatCredentialService).
-        $this->app->singleton(SatCredentialService::class);
-        $this->app->singleton(PagoService::class);
+        // --- BINDING DINÁMICO DEL SERVICIO DE CANCELACIÓN ---
+        $this->app->bind(CancelacionServiceInterface::class, function ($app) {
+            $activeDriver = $this->getActivePacDriver('sw_sapiens');
 
-        // Registramos ambos servicios de facturación. El controlador principal usará 'FacturacionService'.
-        $this->app->singleton(FacturacionService::class);
-        $this->app->singleton(FacturacionServiceTimbradoCfdi::class);
+            switch (strtolower($activeDriver)) {
+                case 'edicom':
+                    return new EdicomCancelacionService($app->make(SatCredentialService::class));
+                case 'formas_digitales':
+                    return new FormasDigitalesCancelacionService($app->make(SatCredentialService::class));
+                case 'sw_sapiens':
+                default:
+                    return new SWCancelacionService($app->make(SatCredentialService::class));
+            }
+        });
+
+        // --- BINDING DINÁMICO DEL SERVICIO DE TIMBRADO DE PAGOS ---
+        $this->app->bind(PagoTimbradoServiceInterface::class, function ($app) {
+            $activeDriver = $this->getActivePacDriver('formas_digitales');
+
+            switch (strtolower($activeDriver)) {
+                // case 'edicom':
+                //     return new EdicomPagoTimbradoService($app->make(SatCredentialService::class));
+                case 'formas_digitales':
+                default:
+                    // Por ahora, solo Formas Digitales soporta el timbrado de pagos en nuestra implementación
+                    return new FormasDigitalesPagoTimbradoService($app->make(SatCredentialService::class));
+            }
+        });
+
+        // --- BINDING DINÁMICO DEL SERVICIO DE CANCELACIÓN DE PAGOS ---
+        $this->app->bind(PagoCancelacionServiceInterface::class, function ($app) {
+            $activeDriver = $this->getActivePacDriver('formas_digitales');
+
+            switch (strtolower($activeDriver)) {
+                case 'edicom':
+                    return new EdicomPagoCancelacionService($app->make(SatCredentialService::class));
+                case 'formas_digitales':
+                default:
+                    // Por ahora, solo Formas Digitales soporta la cancelación de pagos en nuestra implementación
+                    return new FormasDigitalesPagoCancelacionService($app->make(SatCredentialService::class));
+            }
+        });
+
+        // --- BINDING DINÁMICO DEL SERVICIO DE TIMBRADO DE RETENCIONES ---
+        $this->app->bind(RetencionTimbradoServiceInterface::class, function ($app) {
+            $activeDriver = $this->getActivePacDriver('formas_digitales');
+
+            switch (strtolower($activeDriver)) {
+                // case 'edicom':
+                //     return new EdicomRetencionTimbradoService($app->make(SatCredentialService::class));
+                case 'formas_digitales':
+                default:
+                    return new FormasDigitalesRetencionService($app->make(SatCredentialService::class));
+            }
+        });
     }
 
     /**
-     * Bootstrap services.
+     * Bootstrap any application services.
      */
     public function boot(): void
     {
-        $this->registerRoutes();
-        $this->registerViews();
+        $basePath = __DIR__ . '/..';
+        $moduleName = 'Facturacion';
+
+        // Cargar las rutas del módulo
+        Route::middleware(['web', 'auth', 'tenant.license'])
+            ->prefix(config('tenancy.tenant_route_prefix') . '/facturacion') // Add 'facturacion' to the prefix
+            ->as('tenant.facturacion.') // Add 'facturacion.' to the route names
+            ->group(function () use ($basePath) { // Remove $moduleName from use
+                $this->loadRoutesFrom($basePath . '/Routes/web.php');
+            });
+
+        // Cargar las vistas del módulo
+        $this->loadViewsFrom(resource_path('views/tenant/modules/facturacion'), 'facturacion');
+
+        // Cargar las rutas de la API del módulo
+        Route::middleware('api')
+            ->prefix('api')
+            ->as('tenant.api.')
+            ->group(function () use ($basePath) {
+                $this->loadRoutesFrom($basePath . '/Routes/api.php');
+            });
     }
 
     /**
-     * Registra todas las rutas del módulo (web y API interna).
+     * Obtiene el driver del PAC activo para el tenant actual.
+     *
+     * @param string $defaultDriver El driver a usar si no hay PAC activo.
+     * @return string
      */
-    protected function registerRoutes(): void
+    private function getActivePacDriver(string $defaultDriver): string
     {
-        // Grupo para las rutas WEB del módulo (interfaz de usuario)
-        Route::middleware(['web', 'auth', 'verified', 'tenant.license'])
-            ->prefix('tenant/facturacion')
-            ->name('tenant.facturacion.')
-            ->group($this->modulePath . '/Routes/web.php');
+        if (! tenant()) {
+            return $defaultDriver;
+        }
 
-        // Grupo para las rutas API del módulo (consumidas por JavaScript)
-        // Se registran por separado para tener un prefijo de nombre y URL distinto,
-        // lo que es más claro y menos propenso a errores.
-        Route::middleware(['web', 'auth'])
-            ->prefix('api/tenant') // URL: /api/tenant/facturacion/catalogos
-            ->name('tenant.api.')   // Nombre final: tenant.api.facturacion.catalogos
-            ->group($this->modulePath . '/Routes/api.php');
-    }
+        $activePac = Pac::where('tenant_id', tenant('id'))
+                        ->where('is_active', true)
+                        ->first();
 
-    /**
-     * Register the module's views.
-     */
-    protected function registerViews(): void
-    {
-        // Usar el helper resource_path() es más robusto y claro que calcular rutas relativas con '..'.
-        // Esto asegura que Laravel siempre encuentre el directorio de vistas del módulo.
-        $viewPath = resource_path('views/tenant/modules/facturacion');
-        $this->loadViewsFrom($viewPath, 'facturacion');
+        return $activePac->driver ?? $defaultDriver;
     }
 }

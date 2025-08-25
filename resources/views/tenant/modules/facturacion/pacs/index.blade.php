@@ -26,7 +26,7 @@
                         <tr>
                             <th>Nombre</th>
                             <th>RFC</th>
-                            <th>Usuario</th>
+                            <th>Proveedor (Driver)</th>
                             <th>URL Producción</th>
                             <th>Estatus</th>
                             <th class="text-end">Acciones</th>
@@ -37,7 +37,7 @@
                             <tr>
                                 <td>{{ $pac->nombre }}</td>
                                 <td>{{ $pac->rfc }}</td>
-                                <td>{{ $pac->usuario }}</td>
+                                <td><span class="badge bg-info text-dark">{{ $pac->driver }}</span></td>
                                 <td class="small">{{ $pac->url_produccion }}</td>
                                 <td class="text-center">
                                     <span class="badge bg-{{ $pac->is_active ? 'success' : 'secondary' }}">
