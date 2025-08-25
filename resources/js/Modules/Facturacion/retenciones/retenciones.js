@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
             populateSelect(tomSelects.cve_retenc, catalogos.retenciones, { 
                 placeholder: 'Seleccione una clave',
                 valueField: 'id',
-                textField: 'descripcion'
+                textField: 'texto'
             });
 
             // Load series and folios for retentions (Tipo R)

@@ -15,7 +15,7 @@ use SoapClient;
 class FormasDigitalesRetencionService implements RetencionTimbradoServiceInterface
 {
     protected SatCredentialService $credentialService;
-    protected string $endpoint = 'https://retenciones.formasdigitales.com.mx/Timbrado/retenciones'; // URL de ejemplo
+    protected string $endpoint = 'https://dev.facturacfdi.mx:8081/retenciones/wsreciberetencionservice?wsdl';
 
     public function __construct(SatCredentialService $credentialService)
     {
@@ -26,38 +26,53 @@ class FormasDigitalesRetencionService implements RetencionTimbradoServiceInterfa
     {
         try {
             $credentials = $this->credentialService->getCredentials();
-           $xmlString = $this->buildXml($retencion, $credentials);
+            $xmlString = $this->buildXml($retencion, $credentials);
 
-            // Lógica para llamar al Web Service de Formas Digitales
-            // Esto es un ejemplo y debe ser adaptado a la documentación del PAC
-            /*
             $soapClient = new SoapClient($this->endpoint, ['trace' => 1]);
             $params = [
-                'user' => $credentials->pac_user,
+                'usuario' => $credentials->pac_user,
                 'password' => $credentials->pac_password,
-                'cfdi' => base64_encode($xmlString),
+                'xmlRetencion' => $xmlString,
             ];
 
-            $response = $soapClient->timbrar($params); // El nombre del método puede variar
-            */
-            throw new Exception('Lógica de timbrado con PAC no implementada. Usando simulación.');
+            $response = $soapClient->__soapCall('RecibeRetencion2_0', ['parameters' => $params]);
+
+            if (isset($response->RecibeRetencion2_0Result->xmlRetencion_)) {
+                $xmlTimbrado = $response->RecibeRetencion2_0Result->xmlRetencion_;
+
+                // Extraer UUID del XML timbrado
+                $dom = new DOMDocument();
+                $dom->loadXML($xmlTimbrado);
+                $uuid = $dom->getElementsByTagName('TimbreFiscalDigital')->item(0)->getAttribute('UUID');
+
+                return (object)[
+                    'success' => true,
+                    'message' => 'Retención timbrada exitosamente.',
+                    'uuid' => $uuid,
+                    'xml' => $xmlTimbrado,
+                ];
+            } else {
+                // Manejar errores del PAC
+                $errorMessage = 'Error desconocido al timbrar la retención.';
+                if (isset($response->RecibeRetencion2_0Result->mensajeError)) {
+                    $errorMessage = $response->RecibeRetencion2_0Result->mensajeError;
+                }
+                return (object)[
+                    'success' => false,
+                    'message' => $errorMessage,
+                    'uuid' => null,
+                    'xml' => null,
+                ];
+            }
 
         } catch (Exception $e) {
-            // --- INICIO: Bloque de simulación (reemplazar con la llamada real al PAC) ---
-            // Si la llamada real falla o no está implementada, usamos la simulación.
-            $credentials = $this->credentialService->getCredentials();
-            $xmlString = $this->buildXml($retencion, $credentials);
-            $sello = substr(hash('sha256', $xmlString), 0, 100);
-            $uuid = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex(random_bytes(16)), 4));
-            $xmlTimbrado = $this->simularTimbre($xmlString, $uuid, $sello);
-            
+            // Capturar cualquier excepción durante la llamada SOAP
             return (object)[
-                'success' => true,
-                'message' => 'Retención timbrada exitosamente (Simulación).',
-                'uuid' => $uuid,
-                'xml' => $xmlTimbrado,
+                'success' => false,
+                'message' => 'Error al comunicarse con el PAC: ' . $e->getMessage(),
+                'uuid' => null,
+                'xml' => null,
             ];
-            // --- FIN: Bloque de simulación ---
         }
     }
 

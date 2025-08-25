@@ -162,10 +162,10 @@ class SatCatalogService
     public function getRetenciones()
     {
         return $this->readCatalog(
-            self::RET_20_PREFIX . 'retenciones', 
+            self::RET_20_PREFIX . 'claves_retencion', 
             'id', 
-            'descripcion', 
-            'sat.cfdi40.retenciones'
+            'texto', 
+            'sat.ret20.claves_retencion'
         );
     }
 

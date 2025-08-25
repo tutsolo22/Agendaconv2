@@ -45,6 +45,7 @@ class CatalogosApiController extends Controller
         ];
         // --- FIN: Cambio Solicitado ---
 
+        
         return response()->json($catalogos, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
@@ -60,6 +61,16 @@ class CatalogosApiController extends Controller
             // Si esto devuelve un array vacío, el problema está en SatCatalogService->getFormasPago()
             // Si devuelve datos, el problema está en cómo se integra en el método getAll().
             return response()->json($formasPago);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Ocurrió una excepción en el servicio', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function debugRetenciones()
+    {
+        try {
+            $retenciones = $this->catalogService->getRetenciones();
+            
         } catch (\Exception $e) {
             return response()->json(['error' => 'Ocurrió una excepción en el servicio', 'message' => $e->getMessage()], 500);
         }
