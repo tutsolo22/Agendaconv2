@@ -103,6 +103,16 @@ return [
         ],
         // --- FIN: Canal de Log para el Módulo de Médico ---
 
+        // --- INICIO: Canal de Log para el Módulo de Salud ---
+        'salud' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/salud/salud.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 15,
+            'replace_placeholders' => true,
+        ],
+        // --- FIN: Canal de Log para el Módulo de Salud ---
+
 
         'slack' => [
             'driver' => 'slack',

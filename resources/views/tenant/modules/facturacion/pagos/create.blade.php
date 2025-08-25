@@ -16,38 +16,38 @@
                 {{-- Datos Generales del Pago --}}
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label for="cliente_id" class="form-label">Cliente</label>
+                        <label for="cliente_id" class="form-label">Cliente <span class="text-danger">*</span></label>
                         <select class="form-control" id="cliente_id" name="cliente_id" required>
-                            {{-- Opciones de cliente se cargarán con Select2 --}}
+                            {{-- TomSelect llenará este campo --}}
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="serie_folio_id" class="form-label">Serie y Folio</label>
+                        <label for="serie_folio_id" class="form-label">Serie y Folio <span class="text-danger">*</span></label>
                         <select class="form-control" id="serie_folio_id" name="serie_folio_id" required>
-                            {{-- Options will be loaded dynamically by TomSelect --}}
+                            {{-- TomSelect llenará este campo --}}
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="fecha_pago" class="form-label">Fecha de Pago</label>
+                        <label for="fecha_pago" class="form-label">Fecha de Pago <span class="text-danger">*</span></label>
                         <input type="datetime-local" class="form-control" name="fecha_pago" value="{{ now()->format('Y-m-d\TH:i') }}" required>
                     </div>
                 </div>
 
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label for="forma_pago" class="form-label">Forma de Pago</label>
-                        <select class="form-control" name="forma_pago" required>
-                            @foreach ($formasPago as $key => $value)
-                                <option value="{{ $key }}">{{ $value }}</option>
-                            @endforeach
+                        <label for="forma_pago" class="form-label">Forma de Pago <span class="text-danger">*</span></label>
+                        <select class="form-control" id="forma_pago" name="forma_pago" required>
+                            {{-- TomSelect llenará este campo --}}
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="moneda" class="form-label">Moneda</label>
-                        <input type="text" class="form-control" name="moneda" value="MXN" readonly>
+                        <label for="moneda" class="form-label">Moneda <span class="text-danger">*</span></label>
+                        <select class="form-control" id="moneda" name="moneda" required>
+                            {{-- TomSelect llenará este campo --}}
+                        </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="monto" class="form-label">Monto Total del Pago</label>
+                        <label for="monto" class="form-label">Monto Total del Pago <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" class="form-control" name="monto" id="monto_total" required>
                     </div>
                 </div>
@@ -84,17 +84,17 @@
     </div>
 
     @push('scripts')
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {{-- Pasamos las rutas y configuración al script externo --}}
     <script>
         window.pagosConfig = {
             isNewRecord: true,
             urls: {
-                searchClients: '{{ route("tenant.documents.search.clients") }}',
+                searchClients: '{{ route("tenant.api.facturacion.clientes.search") }}', // URL Unificada
                 searchInvoices: '{{ route("tenant.facturacion.pagos.search.invoices") }}',
                 series: '{{ route("tenant.api.facturacion.series") }}',
-                createSerieUrl: '{{ route("tenant.facturacion.configuracion.series-folios.create") }}'
+                catalogos: "{{ route('tenant.api.facturacion.catalogos') }}", // URL de Catálogos
+                createSerieUrl: '{{ route("tenant.facturacion.configuracion.series-folios.create") }}',
+                createClientUrl: '{{ route("tenant.clientes.create") }}'
             }
         };
     </script>

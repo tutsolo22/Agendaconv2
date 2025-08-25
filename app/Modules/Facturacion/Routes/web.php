@@ -9,7 +9,7 @@ use App\Modules\Facturacion\Http\Controllers\Configuracion\SerieFolioController;
 use App\Modules\Facturacion\Http\Controllers\Api\CatalogosApiController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('api/catalogos', [CatalogosApiController::class, 'getAll'])->name('api.catalogos');
+Route::get('api/catalogos', [CatalogosApiController::class, 'getAll'])->name('tenant.api.facturacion.catalogos');
 
 
 

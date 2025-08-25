@@ -296,3 +296,53 @@ Se ha implementado un sistema de notificaciones por correo electrónico para el 
 ## Actualización en Módulo de Facturación V4
 
 *   **Integración con EDICOM para Retenciones:** Se ha completado la integración con el PAC EDICOM para el timbrado de comprobantes de retenciones. El servicio `App\Modules\Facturacion\Services\Edicom\EdicomRetencionService` ha sido actualizado para utilizar el servicio web de EDICOM en lugar de la simulación.
+---
+
+## 13. MÓDULO DE SALUD (PLAN DE ACCIÓN AMPLIADO)
+
+A continuación se detalla el plan de acción para el desarrollo del Módulo de Salud, una solución integral y flexible para consultorios, clínicas y hospitales.
+
+### Fase 1: Estructura y Configuración del Módulo (Completada)
+*   **Directorios del Módulo**: Creados en `app/Modules/Salud/`, `resources/views/tenant/modules/salud/` y `resources/js/Modules/Salud/`.
+*   **Service Provider**: Creado y registrado (`app/Modules/Salud/SaludServiceProvider.php`).
+*   **Logging**: Canal `salud` configurado en `config/logging.php`.
+
+### Fase 2: Base de Datos (Migraciones)
+*   **Nomenclatura**: Todas las tablas nuevas llevarán el prefijo `salud_`.
+*   **Recursos a Reutilizar**: Se utilizarán los modelos existentes `Cliente` (para pacientes) y `Sucursal` (para consultorios/ubicaciones).
+*   **Sub-módulo: Citas y Consultas**
+    *   `salud_profesionistas`: Para gestionar doctores/profesionales (nombre, especialidad, cédula, etc.).
+    *   `salud_servicios`: Catálogo de servicios o tratamientos (nombre, costo, duración).
+    *   `salud_horarios`: Disponibilidad de los profesionistas por sucursal y día.
+    *   `salud_citas`: Para agendar las citas.
+*   **Sub-módulo: Historial Clínico**
+    *   `salud_historiales_clinicos`: Registro maestro por paciente (`cliente_id`).
+    *   `salud_historial_entradas`: Cada consulta o evento genera una entrada en el historial (notas de evolución, diagnóstico).
+    *   `salud_signos_vitales`: Registros periódicos de peso, altura, presión arterial, ritmo cardíaco, etc., asociados a una entrada del historial.
+*   **Sub-módulo: Hospitalización (Licencia Especial)**
+    *   `salud_cuartos`: Catálogo de cuartos/habitaciones por sucursal.
+    *   `salud_camas`: Catálogo de camas por cuarto.
+    *   `salud_hospitalizaciones`: Registro de ingresos y egresos de pacientes, asociando paciente, cama, fechas y diagnóstico de ingreso.
+
+### Fase 3: Lógica de Backend
+*   **Modelos**: Crear modelos Eloquent para todas las tablas nuevas, asegurando el uso del trait `App\Traits\TenantScoped`.
+*   **Controladores**: Implementar la lógica CRUD para cada entidad (Profesionistas, Servicios, Citas, Historial, etc.).
+*   **Servicios**: Crear servicios para encapsular la lógica de negocio compleja:
+    *   `AgendaService`: Para buscar horarios disponibles y validar la creación de citas.
+    *   `HistorialService`: Para gestionar las entradas al historial clínico.
+    *   `HospitalizacionService`: Para gestionar ingresos, egresos y disponibilidad de camas.
+*   **Licenciamiento del Módulo de Hospitalización**:
+    *   Implementar una verificación en el `SaludServiceProvider` o un middleware dedicado.
+    *   Este comprobará si el tenant tiene una licencia específica y activa para "hospitalizacion" antes de registrar las rutas y vistas de dicho sub-módulo.
+    *   El `Super-Admin` será el único que pueda asignar esta licencia.
+
+### Fase 4: Lógica de Frontend
+*   **Vistas**: Desarrollar vistas Blade para todos los CRUDs.
+*   **Calendario de Citas**: Implementar un calendario interactivo (ej. FullCalendar) que consuma una API interna para mostrar y gestionar citas.
+*   **Gestión de Historial Clínico**: Crear la interfaz para que el profesionista pueda ver el historial completo del paciente y añadir nuevas entradas y signos vitales de forma sencilla.
+*   **Panel de Hospitalización**: Desarrollar un dashboard que muestre el estado de ocupación de los cuartos y camas, y permita gestionar los ingresos y egresos.
+
+### Fase 5: Funcionalidades Transversales
+*   **Almacenamiento de Archivos**: Utilizar el gestor de documentos existente para subir archivos (estudios, radiografías) a la ruta `storage/app/public/{tenant_id}/salud/cliente_{cliente_id}/`.
+*   **Permisos**: Definir roles (`Doctor`, `Recepcionista`, `Enfermero`) con `spatie/laravel-permission` para controlar el acceso a las diferentes secciones del módulo.
+*   **Auditoría**: Configurar `spatie/laravel-activitylog` para los modelos críticos del módulo.

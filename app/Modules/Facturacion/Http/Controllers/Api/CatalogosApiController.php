@@ -41,10 +41,11 @@ class CatalogosApiController extends Controller
             'periocidades' => $this->catalogService->getPeriodicidades(),
             'meses' => $this->catalogService->getMeses(),
             'tiposRelacion' => $this->catalogService->getTiposRelacion(),
+            'retenciones' => $this->catalogService->getRetenciones(),
         ];
         // --- FIN: Cambio Solicitado ---
 
-        return response()->json($catalogos);
+        return response()->json($catalogos, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -68,7 +69,7 @@ class CatalogosApiController extends Controller
     {
         // El frontend espera 'id' y 'descripcion' para construir el texto del dropdown.
         $tiposComprobante = $this->catalogService->getTiposDeComprobante();
-        return response()->json($tiposComprobante);
+        return response()->json($tiposComprobante, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function series()
@@ -77,7 +78,7 @@ class CatalogosApiController extends Controller
         $series = SerieFolio::where('is_active', true)
                               ->where('tipo_comprobante', 'I') // Filtramos solo series de Ingreso para facturas.
                               ->get(['id', 'serie', 'folio_actual']);
-        return response()->json($series);
+        return response()->json($series, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function searchClients(Request $request)
@@ -95,44 +96,44 @@ class CatalogosApiController extends Controller
                           ->limit(15)
                           ->get(['id', 'nombre_completo', 'rfc', 'regimen_fiscal_receptor', 'codigo_postal_receptor']);
 
-        return response()->json($clients);
+        return response()->json($clients, 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function productosServicios(Request $request)
     {
         $query = $request->input('q', '');
-        return response()->json($this->catalogService->searchProductosServicios($query));
+        return response()->json($this->catalogService->searchProductosServicios($query), 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function clavesUnidad(Request $request)
     {
         $query = $request->input('q', '');
-        return response()->json($this->catalogService->getClavesUnidad($query));
+        return response()->json($this->catalogService->getClavesUnidad($query), 200, [], JSON_UNESCAPED_UNICODE);
     }
     public function usosCfdi(Request $request)
     {
         $query = $request->input('q', '');
-        return response()->json($this->catalogService->getUsosCfdi($query));
+        return response()->json($this->catalogService->getUsosCfdi($query), 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function regimenesFiscales(Request $request)
     {
         $query = $request->input('q', '');
-        return response()->json($this->catalogService->getRegimenesFiscales($query));
+        return response()->json($this->catalogService->getRegimenesFiscales($query), 200, [], JSON_UNESCAPED_UNICODE);
     }
     public function periodicidades(Request $request)
     {
         $query = $request->input('q', '');
-        return response()->json($this->catalogService->getPeriodicidades($query));
+        return response()->json($this->catalogService->getPeriodicidades($query), 200, [], JSON_UNESCAPED_UNICODE);
     }
     public function meses(Request $request)
     {
         $query = $request->input('q', '');
-        return response()->json($this->catalogService->getMeses($query));
+        return response()->json($this->catalogService->getMeses($query), 200, [], JSON_UNESCAPED_UNICODE);
     }
     public function tiposRelacion(Request $request)
     { 
         $query = $request->input('q', '');
-        return response()->json($this->catalogService->getTiposRelacion($query));
+        return response()->json($this->catalogService->getTiposRelacion($query), 200, [], JSON_UNESCAPED_UNICODE);
     }
 }

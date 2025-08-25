@@ -2,7 +2,7 @@
 
 import TomSelect from 'tom-select'; // Keep TomSelect import for now, will abstract later if needed
 import 'tom-select/dist/css/tom-select.bootstrap5.min.css'; // Keep CSS import for now
-import { populateSelect } from '../../Utils/tomSelectHelper.js'; // Importamos el helper
+import { populateSelect } from '../../../Utils/tomSelectHelper.js'; // Importamos el helper
 
 /**
  * Initializes a TomSelect instance for client search.
@@ -77,12 +77,38 @@ export async function loadSeriesAndFolios(tomSelectInstance, seriesUrl, createSe
         };
 
         const seriesRes = await fetch(seriesUrl, fetchOptions);
+        if (!seriesRes.ok) {
+            throw new Error(`Error del servidor: ${seriesRes.status}`);
+        }
         const seriesData = await seriesRes.json();
 
-        if (!seriesRes.ok || !Array.isArray(seriesData) || seriesData.length === 0) {
-            throw new Error('No hay series configuradas o hubo un error al cargarlas.');
+        // Si no hay series, mostramos la alerta y salimos. No es un error, es un estado.
+        if (!Array.isArray(seriesData) || seriesData.length === 0) {
+            console.warn('No se encontraron series y folios configurados.');
+            tomSelectInstance.disable();
+            tomSelectInstance.clear();
+            tomSelectInstance.addOption({ value: '', text: 'No configurado' });
+
+            // Usamos el elemento de control de TomSelect para encontrar el contenedor, es más seguro.
+            const wrapper = tomSelectInstance.control.closest('.mb-3');
+            if (wrapper) {
+                const alertId = `serie-alert-${tomSelectInstance.settings.id || 'default'}`;
+                const existingAlert = wrapper.querySelector(`#${alertId}`);
+                if (existingAlert) existingAlert.remove(); // Evita duplicados
+
+                const alertHtml = `
+                    <div class="alert alert-warning alert-dismissible fade show mt-2" role="alert" id="${alertId}">
+                        <p class="mb-2 small">No hay series y folios configurados para facturar.</p>
+                        <a href="${createSerieUrl}" class="btn btn-primary btn-sm w-100">Configurar ahora</a>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+                wrapper.insertAdjacentHTML('beforeend', alertHtml);
+            }
+            return; // Importante: Salimos de la función aquí.
         }
 
+        // Si llegamos aquí, es que hay series. Las poblamos.
         populateSelect(tomSelectInstance, seriesData, {
             valueField: 'id',
             textField: 'serie',
@@ -91,25 +117,11 @@ export async function loadSeriesAndFolios(tomSelectInstance, seriesUrl, createSe
         });
 
     } catch (error) {
-        console.warn('No se pudieron cargar las series:', error.message);
+        // Este catch ahora solo se ejecutará para errores de red u otros imprevistos.
+        console.error('Error crítico al cargar las series:', error);
         tomSelectInstance.disable();
         tomSelectInstance.clear();
-        tomSelectInstance.addOption({ value: '', text: 'No configurado' });
-
-        const serieWrapper = document.getElementById(tomSelectInstance.settings.id).closest('.mb-3');
-        if (serieWrapper) {
-            const existingAlert = serieWrapper.querySelector('#serie-alert');
-            if (existingAlert) existingAlert.remove();
-
-            const alertHtml = `
-                <div class="alert alert-warning alert-dismissible fade show mt-2" role="alert" id="serie-alert">
-                    <p class="mb-2 small">No hay series y folios configurados para facturar.</p>
-                    <a href="${createSerieUrl}" class="btn btn-primary btn-sm w-100">Configurar ahora</a>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
-            serieWrapper.insertAdjacentHTML('beforeend', alertHtml);
-        }
+        tomSelectInstance.addOption({ value: '', text: 'Error de carga' });
     }
 }
 

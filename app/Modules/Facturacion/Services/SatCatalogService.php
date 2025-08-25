@@ -12,6 +12,7 @@ class SatCatalogService
      * Se define aquí para facilitar futuras actualizaciones a nuevas versiones (ej. CFDI 5.0).
      */
     private const CFDI_40_PREFIX = 'sat_cfdi_40_';
+    private const RET_20_PREFIX = 'sat_ret_20_';
 
     /**
      * Lee un catálogo del SAT desde la base de datos, lo transforma y lo cachea.
@@ -156,6 +157,16 @@ class SatCatalogService
             'id', 
             'texto', 
             'sat.cfdi40.tipos_relaciones');
+    }
+
+    public function getRetenciones()
+    {
+        return $this->readCatalog(
+            self::RET_20_PREFIX . 'retenciones', 
+            'id', 
+            'descripcion', 
+            'sat.cfdi40.retenciones'
+        );
     }
 
     /**
