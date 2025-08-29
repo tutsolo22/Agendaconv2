@@ -7,10 +7,17 @@ use App\Modules\Facturacion\Http\Controllers\Retencion\RetencionController;
 use App\Modules\Facturacion\Http\Controllers\Configuracion\PacController;
 use App\Modules\Facturacion\Http\Controllers\Configuracion\SerieFolioController;
 use App\Modules\Facturacion\Http\Controllers\Api\CatalogosApiController;
+use App\Modules\Facturacion\Http\Controllers\CartaPorteController; // Added
 use Illuminate\Support\Facades\Route;
 
+// --- INICIO: Rutas de API para el Frontend ---
+// Se definen explícitamente para evitar conflictos con prefijos de proveedor de servicios.
 Route::get('api/catalogos', [CatalogosApiController::class, 'getAll'])->name('tenant.api.facturacion.catalogos');
-
+Route::get('api/series', [CatalogosApiController::class, 'series'])->name('tenant.api.facturacion.series');
+Route::get('api/clientes/search', [CatalogosApiController::class, 'searchClients'])->name('tenant.api.facturacion.clientes.search');
+Route::get('api/productos-servicios/search', [CatalogosApiController::class, 'productosServicios'])->name('tenant.api.facturacion.productos-servicios.search');
+Route::get('api/sat-catalogs/{catalogName}', [CatalogosApiController::class, 'getSatCatalog'])->name('tenant.api.facturacion.sat-catalogs.get');
+// --- FIN: Rutas de API para el Frontend ---
 
 
 /*
@@ -45,6 +52,13 @@ Route::get('pagos/{pago}/xml', [PagoController::class, 'downloadXml'])->name('pa
 Route::get('pagos/{pago}/pdf', [PagoController::class, 'downloadPdf'])->name('pagos.download.pdf');
 
 Route::resource('pagos', PagoController::class);
+
+// Rutas de Carta Porte (Added)
+Route::resource('cartaporte', CartaPorteController::class)->except([
+    'destroy'
+]);
+
+Route::post('cartaporte/draft', [CartaPorteController::class, 'storeAsDraft'])->name('cartaporte.storeAsDraft');
 
 // Grupo de rutas para Retenciones (Nuevo)
 Route::prefix('retenciones')->name('retenciones.')->group(function () {

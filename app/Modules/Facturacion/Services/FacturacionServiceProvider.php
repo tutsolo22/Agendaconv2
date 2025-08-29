@@ -106,8 +106,8 @@ class FacturacionServiceProvider extends ServiceProvider
             $activeDriver = $this->getActivePacDriver('formas_digitales');
 
             switch (strtolower($activeDriver)) {
-                // case 'edicom':
-                //     return new EdicomRetencionTimbradoService($app->make(SatCredentialService::class));
+                case 'edicom':
+                    return new EdicomRetencionService($app->make(SatCredentialService::class));
                 case 'formas_digitales':
                 default:
                     return new FormasDigitalesRetencionService($app->make(SatCredentialService::class));

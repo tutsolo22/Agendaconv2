@@ -78,6 +78,16 @@ el desarrollo del proyecto.
 - [x] Añadir vista de detalle para facturas que muestra los CFDI relacionados.
 - [x] Implementar la funcionalidad de Factura Global para ventas al público.
 - [ ] Asegurar que todas las consultas y creaciones de registros respeten `tenant_id` y `modulo_id`.
+#### Módulo: Carta Porte
+- [x] Implementar la funcionalidad de guardar Carta Porte como borrador.
+- [x] Implementar la funcionalidad de timbrado de Carta Porte con Edicom.
+- [x] Implementar la funcionalidad de modificar Carta Porte en estado de borrador.
+- [x] Actualizar la base de datos con el campo `status` en la tabla `cp_cartaporte`.
+- [x] Actualizar el modelo `CartaPorte` para incluir el campo `status`.
+- [x] Actualizar el controlador `CartaPorteController` con los métodos `storeAsDraft`, `edit` y `update`.
+- [x] Actualizar el servicio `CartaPorteService` con la lógica de timbrado de Edicom en `callPacService` y el procesamiento de la respuesta en `generateAndStamp`.
+- [x] Actualizar las rutas para incluir `storeAsDraft`, `edit` y `update`.
+- [x] Actualizar las vistas `create.blade.php`, `edit.blade.php` e `index.blade.php` para soportar las nuevas funcionalidades.
 
 #### Módulo: Citas Médicas (Pendiente)
 

@@ -61,7 +61,7 @@ class LicenciaController extends Controller
 
         // Validamos los datos preparados
         $validatedData = validator($data, [
-            'tenant_id' => 'nullable|exists:tenants,id', // Hacemos que el tenant_id sea opcional
+            'tenant_id' => 'required|exists:tenants,id', // El tenant_id es ahora obligatorio
             'modulo_id' => [
                 'required',
                 'exists:modulos,id',

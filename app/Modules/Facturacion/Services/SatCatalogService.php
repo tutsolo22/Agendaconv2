@@ -13,6 +13,7 @@ class SatCatalogService
      */
     private const CFDI_40_PREFIX = 'sat_cfdi_40_';
     private const RET_20_PREFIX = 'sat_ret_20_';
+    private const CCP_31_PREFIX = 'sat_ccp_31_';
 
     /**
      * Lee un catálogo del SAT desde la base de datos, lo transforma y lo cachea.
@@ -166,6 +167,207 @@ class SatCatalogService
             'id', 
             'texto', 
             'sat.ret20.claves_retencion'
+        );
+    }
+
+    // Métodos para catálogos de Carta Porte 3.1
+    public function getAutorizacionesNavieroCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'autorizaciones_naviero',
+            'id',
+            'texto',
+            'sat.ccp31.autorizaciones_naviero'
+        );
+    }
+
+    public function getClavesUnidadesCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'claves_unidades',
+            'id',
+            'texto',
+            'sat.ccp31.claves_unidades'
+        );
+    }
+
+    public function getCodigosTransporteAereoCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'codigos_transporte_aereo',
+            'id',
+            'texto',
+            'sat.ccp31.codigos_transporte_aereo'
+        );
+    }
+
+    public function getColoniasCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'colonias',
+            'colonia',
+            'texto',
+            'sat.ccp31.colonias'
+        );
+    }
+
+    public function getCondicionesEspecialesCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'condiciones_especiales',
+            'id',
+            'texto',
+            'sat.ccp31.condiciones_especiales'
+        );
+    }
+
+    public function getConfiguracionesAutotransporteCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'configuraciones_autotransporte',
+            'id',
+            'texto',
+            'sat.ccp31.configuraciones_autotransporte'
+        );
+    }
+
+    public function getConfiguracionesMaritimasCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'configuraciones_maritimas',
+            'id',
+            'texto',
+            'sat.ccp31.configuraciones_maritimas'
+        );
+    }
+
+    public function getContenedoresCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'contenedores',
+            'id',
+            'texto',
+            'sat.ccp31.contenedores'
+        );
+    }
+
+    public function getContenedoresMaritimosCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'contenedores_maritimos',
+            'id',
+            'texto',
+            'sat.ccp31.contenedores_maritimos'
+        );
+    }
+
+    public function getDerechosDePasoCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'derechos_de_paso',
+            'id',
+            'texto',
+            'sat.ccp31.derechos_de_paso'
+        );
+    }
+
+    public function getDocumentosAduanerosCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'documentos_aduaneros',
+            'id',
+            'texto',
+            'sat.ccp31.documentos_aduaneros'
+        );
+    }
+
+    public function getEstacionesCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'estaciones',
+            'id',
+            'texto',
+            'sat.ccp31.estaciones'
+        );
+    }
+
+    public function getFigurasTransporteCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'figuras_transporte',
+            'id',
+            'texto',
+            'sat.ccp31.figuras_transporte'
+        );
+    }
+
+    public function getFormasFarmaceuticasCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'formas_farmaceuticas',
+            'id',
+            'texto',
+            'sat.ccp31.formas_farmaceuticas'
+        );
+    }
+
+    public function getLocalidadesCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'localidades',
+            'localidad',
+            'texto',
+            'sat.ccp31.localidades'
+        );
+    }
+
+    public function getMaterialesPeligrososCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'materiales_peligrosos',
+            'id',
+            'texto',
+            'sat.ccp31.materiales_peligrosos'
+        );
+    }
+
+    public function getMunicipiosCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'municipios',
+            'municipio',
+            'texto',
+            'sat.ccp31.municipios'
+        );
+    }
+
+    public function getPartesTransporteCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'partes_transporte',
+            'id',
+            'texto',
+            'sat.ccp31.partes_transporte'
+        );
+    }
+
+    public function getProductosServiciosCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'productos_servicios',
+            'id',
+            'texto',
+            'sat.ccp31.productos_servicios'
+        );
+    }
+
+    public function getRegimenesAduanerosCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'regimenes_aduaneros',
+            'id',
+            'texto',
+            'sat.ccp31.regimenes_aduaneros'
         );
     }
 

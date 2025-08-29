@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cliente;
+use App\Modules\Facturacion\Models\Cfdi;
+use App\Modules\Facturacion\Models\Configuracion\SerieFolio;
 use App\Models\Licencia;
 use App\Models\Modulo;
 use App\Models\Sucursal;
@@ -117,6 +120,38 @@ class TestDataSeeder extends Seeder
                     'is_active' => true,
                 ]);
             }
+
+            // Crear un cliente y un CFDI de ejemplo para Carta Porte
+            $cliente = Cliente::create([
+                'tenant_id' => 1,
+                'nombre_completo' => 'Cliente de Prueba para Carta Porte',
+                'rfc' => 'XAXX010101000',
+                'email' => 'cliente.cp@test.com',
+            ]);
+
+            $serieFolio = SerieFolio::create([
+                'tenant_id' => 1,
+                'serie' => 'T',
+                'folio_actual' => 0,
+                'tipo_comprobante' => 'T',
+            ]);
+
+            Cfdi::create([
+                'id' => \Illuminate\Support\Str::uuid(),
+                'tenant_id' => 1,
+                'cliente_id' => $cliente->id,
+                'serie_folio_id' => $serieFolio->id,
+                'serie' => 'T',
+                'folio' => 1,
+                'tipo_comprobante' => 'T',
+                'forma_pago' => '99',
+                'metodo_pago' => 'PUE',
+                'uso_cfdi' => 'S01',
+                'subtotal' => 100,
+                'impuestos' => 16,
+                'total' => 116,
+                'status' => 'timbrado',
+            ]);
         }
     }
 }

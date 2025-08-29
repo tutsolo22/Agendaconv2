@@ -33,6 +33,14 @@ Route::prefix('facturacion')->name('facturacion.')->controller(CatalogosApiContr
     // Búsqueda de productos/servicios del catálogo del SAT.
     // Nombre: tenant.api.facturacion.productos-servicios.search
     Route::get('productos-servicios/search', 'productosServicios')->name('productos-servicios.search');
+
+    // Búsqueda de CFDI por folio o UUID
+    // Nombre: tenant.api.facturacion.search-cfdis
+    Route::get('search-cfdis', 'searchCfdis')->name('search-cfdis');
+
+    // Búsqueda genérica de catálogos del SAT
+    // Nombre: tenant.api.facturacion.sat-catalogs
+    Route::get('sat-catalogs/{catalogName}', 'getSatCatalog')->name('sat-catalogs');
 });
 
 // --- RUTA DE DEPURACIÓN TEMPORAL ---

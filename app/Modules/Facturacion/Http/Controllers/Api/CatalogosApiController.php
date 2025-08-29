@@ -5,6 +5,7 @@ namespace App\Modules\Facturacion\Http\Controllers\Api;
 use App\Http\Controllers\Controller; // This line is already present and correct.
 use App\Modules\Facturacion\Models\Configuracion\SerieFolio;
 use App\Models\Cliente;
+use App\Modules\Facturacion\Models\Cfdi;
 use App\Modules\Facturacion\Services\SatCatalogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -146,5 +147,36 @@ class CatalogosApiController extends Controller
     { 
         $query = $request->input('q', '');
         return response()->json($this->catalogService->getTiposRelacion($query), 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function searchCfdis(Request $request): JsonResponse
+    {
+        $query = $request->input('q', '');
+
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $cfdis = Cfdi::where(function ($q) use ($query) {
+                              $q->where('folio', 'like', "%{$query}%")
+                                ->orWhere('uuid_fiscal', 'like', "%{$query}%");
+                          })
+                          ->limit(15)
+                          ->get(['id', 'serie', 'folio', 'total', 'uuid_fiscal']);
+
+        return response()->json($cfdis, 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function getSatCatalog(Request $request, string $catalogName): JsonResponse
+    {
+        $query = $request->input('q', '');
+        $methodName = 'get' . ucfirst($catalogName);
+
+        if (method_exists($this->catalogService, $methodName)) {
+            $data = $this->catalogService->$methodName($query);
+            return response()->json($data, 200, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        return response()->json(['error' => 'Catálogo no encontrado o método no implementado.'], 404);
     }
 }
