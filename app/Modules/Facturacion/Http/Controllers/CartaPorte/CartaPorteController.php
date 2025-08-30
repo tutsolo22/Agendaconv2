@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Facturacion\Http\Controllers;
+namespace App\Modules\Facturacion\Http\Controllers\CartaPorte;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;

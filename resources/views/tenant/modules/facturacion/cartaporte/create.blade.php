@@ -272,7 +272,7 @@
         <script>
             // Pasamos la URL base de la API de catálogos a JavaScript
             window.apiUrls = {
-                satCatalogos: "{{ route('tenant.api.facturacion.sat-catalogs.get', '') }}"
+                satCatalogos: "{{ url('facturacion/api/sat-catalogs') }}/"
             };
         </script>
         @vite(['resources/js/Modules/Facturacion/cartaporte/cartaporte.js'])
