@@ -137,7 +137,7 @@ class FacturacionServiceProvider extends ServiceProvider
         // Cargar las rutas de la API del módulo
         Route::middleware('api')
             ->prefix('api')
-            ->as('tenant.api.')
+            ->as('tenant.facturacion.api.') // Corrected prefix
             ->group(function () use ($basePath) {
                 $this->loadRoutesFrom($basePath . '/Routes/api.php');
             });

@@ -29,20 +29,17 @@ class EdicomTimbradoService implements TimbradoServiceInterface
     /**
      * Timbra un CFDI utilizando el servicio de EDICOM.
      *
-     * @param array $cfdiData Los datos para construir el CFDI.
+     * @param string $xmlSellado El contenido del XML del CFDI ya sellado.
      * @return object El resultado estandarizado del timbrado.
      */
-    public function timbrar(array $cfdiData): object
+    public function timbrar(string $xmlSellado): object
     {
-        // 1. Construir el XML a partir del array $cfdiData.
-        $xmlString = CfdiCreatorHelper::crearXml($cfdiData, $this->credentialService);
-
-        // 2. Enviar la petición a la API de EDICOM.
+        // 1. Enviar la petición a la API de EDICOM.
         // La documentación de EDICOM especificará el formato exacto (JSON, form-data, etc.).
         // Aquí simulamos un envío JSON.
         $response = Http::withBasicAuth($this->apiUser, $this->apiPassword)
             ->post($this->apiUrl, [
-                'xml_base64' => base64_encode($xmlString),
+                'xml_base64' => base64_encode($xmlSellado),
             ]);
 
         if ($response->failed()) {
@@ -53,7 +50,7 @@ class EdicomTimbradoService implements TimbradoServiceInterface
             ];
         }
 
-        // 3. Procesar la respuesta y devolver un objeto estandarizado.
+        // 2. Procesar la respuesta y devolver un objeto estandarizado.
         $responseData = $response->json();
         return (object) [
             'success' => true,

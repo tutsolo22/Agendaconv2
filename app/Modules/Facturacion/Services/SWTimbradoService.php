@@ -22,14 +22,11 @@ class SWTimbradoService implements TimbradoServiceInterface
         $this->apiToken = $pacConfig->credentials['token'] ?? null;
     }
 
-    public function timbrar(array $cfdiData): object
+    public function timbrar(string $xmlSellado): object
     {
-        // 1. Construir el XML a partir del array $cfdiData.
-        $xmlString = CfdiCreatorHelper::crearXml($cfdiData, $this->credentialService);
-
-        // 2. Enviar la petición a la API de SW Sapiens.
+        // 1. Enviar la petición a la API de SW Sapiens.
         $response = Http::withToken($this->apiToken)
-            ->withBody($xmlString, 'application/xml')
+            ->withBody($xmlSellado, 'application/xml')
             ->post($this->apiUrl . '/v4/cfdi33/stamp/v4'); // Endpoint para CFDI 4.0
 
         if ($response->failed()) {
@@ -40,7 +37,7 @@ class SWTimbradoService implements TimbradoServiceInterface
             ];
         }
 
-        // 3. Devolver una respuesta estandarizada
+        // 2. Devolver una respuesta estandarizada
         $responseData = $response->json();
         return (object) [
             'success' => true,

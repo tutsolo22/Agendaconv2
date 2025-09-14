@@ -7,14 +7,19 @@ use Illuminate\Http\Request;
 use App\Modules\Facturacion\Http\Requests\StoreCartaPorteRequest;
 use App\Modules\Facturacion\Models\CartaPorte\CartaPorte;
 use App\Modules\Facturacion\Services\CartaPorteService;
+use App\Modules\Facturacion\Models\Configuracion\DatoFiscal;
+use App\Modules\Facturacion\Services\SatCatalogService;
+use Illuminate\Support\Facades\Auth;
 
 class CartaPorteController extends Controller
 {
     protected $cartaPorteService;
+    protected $satCatalogService;
 
-    public function __construct(CartaPorteService $cartaPorteService)
+    public function __construct(CartaPorteService $cartaPorteService, SatCatalogService $satCatalogService)
     {
         $this->cartaPorteService = $cartaPorteService;
+        $this->satCatalogService = $satCatalogService;
     }
 
     /**
@@ -31,7 +36,15 @@ class CartaPorteController extends Controller
      */
     public function create()
     {
-        return view('tenant.modules.facturacion.cartaporte.create');
+        $tenant = Auth::user()->tenant;
+        $datosFiscales = $tenant->datosFiscales;
+        $origenDomicilio = [];
+
+        if ($datosFiscales && $datosFiscales->cp_fiscal) {
+            $origenDomicilio = $this->satCatalogService->getCodigoPostalInfo($datosFiscales->cp_fiscal);
+        }
+
+        return view('tenant.modules.facturacion.cartaporte.create', compact('datosFiscales', 'origenDomicilio'));
     }
 
     /**

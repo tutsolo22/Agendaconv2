@@ -2,7 +2,6 @@
 
 namespace App\Modules\Facturacion\Services\FormasDigitales;
 
-use CfdiUtils\Cfdi as CfdiReader;
 use App\Modules\Facturacion\Services\Contracts\TimbradoServiceInterface;
 use App\Modules\Facturacion\Services\SatCredentialService;
 use App\Modules\Facturacion\Services\CfdiCreatorHelper;

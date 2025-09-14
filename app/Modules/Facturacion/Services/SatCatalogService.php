@@ -14,6 +14,7 @@ class SatCatalogService
     private const CFDI_40_PREFIX = 'sat_cfdi_40_';
     private const RET_20_PREFIX = 'sat_ret_20_';
     private const CCP_31_PREFIX = 'sat_ccp_31_';
+    private const NOMINA_PREFIX = 'sat_nomina_'; // Nuevo prefijo
 
     /**
      * Lee un catálogo del SAT desde la base de datos, lo transforma y lo cachea.
@@ -56,6 +57,20 @@ class SatCatalogService
             return $results->map(fn($item) => ['id' => $item->{$keyColumn}, 'texto' => $item->{$textColumn}]);
         });
     }
+
+    // --- MÉTODOS DE CATÁLOGOS DE NÓMINA ---
+
+    public function getTiposNomina() { return $this->readCatalog(self::NOMINA_PREFIX . 'tipos_nominas', 'id', 'texto', 'sat.nomina.tipos_nomina'); }
+    public function getPeriodicidadesPago() { return $this->readCatalog(self::NOMINA_PREFIX . 'periodicidades_pagos', 'id', 'texto', 'sat.nomina.periodicidades_pago'); }
+    public function getTiposContrato() { return $this->readCatalog(self::NOMINA_PREFIX . 'tipos_contratos', 'id', 'texto', 'sat.nomina.tipos_contrato'); }
+    public function getTiposRegimen() { return $this->readCatalog(self::CFDI_40_PREFIX . 'regimenes_fiscales', 'id', 'texto', 'sat.cfdi40.regimenes_fiscales'); } // Reutiliza el de CFDI40
+    public function getTiposJornada() { return $this->readCatalog(self::NOMINA_PREFIX . 'tipos_jornadas', 'id', 'texto', 'sat.nomina.tipos_jornada'); }
+    public function getRiesgosPuesto() { return $this->readCatalog(self::NOMINA_PREFIX . 'riesgos_puestos', 'id', 'texto', 'sat.nomina.riesgos_puesto'); }
+    public function getBancos() { return $this->readCatalog(self::NOMINA_PREFIX . 'bancos', 'id', 'texto', 'sat.nomina.bancos'); }
+    public function getTiposPercepcion() { return $this->readCatalog(self::NOMINA_PREFIX . 'tipos_percepciones', 'id', 'texto', 'sat.nomina.tipos_percepcion'); }
+    public function getTiposDeduccion() { return $this->readCatalog(self::NOMINA_PREFIX . 'tipos_deducciones', 'id', 'texto', 'sat.nomina.tipos_deduccion'); }
+    public function getTiposOtroPago() { return $this->readCatalog(self::NOMINA_PREFIX . 'tipos_otros_pagos', 'id', 'texto', 'sat.nomina.tipos_otro_pago'); }
+    public function getTiposIncapacidad() { return $this->readCatalog(self::NOMINA_PREFIX . 'tipos_incapacidades', 'id', 'texto', 'sat.nomina.tipos_incapacidad'); }
 
     public function getFormasPago()
     {
@@ -371,6 +386,16 @@ class SatCatalogService
         );
     }
 
+    public function getTiposPermisoCcp31()
+    {
+        return $this->readCatalog(
+            self::CCP_31_PREFIX . 'tipos_permiso',
+            'id',
+            'texto',
+            'sat.ccp31.tipos_permiso'
+        );
+    }
+
     /**
      * Busca productos o servicios en la base de datos de catálogos del SAT.
      *
@@ -394,5 +419,40 @@ class SatCatalogService
             ->take(50)
             ->get(['id', 'texto'])
             ->map(fn($item) => ['id' => $item->id, 'texto' => "{$item->id} - {$item->texto}"]);
+    }
+
+    public function getCodigoPostalInfo(string $codigoPostal)
+    {
+        $cacheKey = 'sat.ccp31.codigopostal.' . $codigoPostal;
+
+        return Cache::rememberForever($cacheKey, function () use ($codigoPostal) {
+            $cpData = DB::table(self::CCP_31_PREFIX . 'codigos_postales as cp')
+                ->where('cp.id', $codigoPostal)
+                ->join(self::CCP_31_PREFIX . 'estados as est', 'cp.estado', '=', 'est.id')
+                ->join(self::CCP_31_PREFIX . 'municipios as mun', 'cp.municipio', '=', 'mun.id')
+                ->leftJoin(self::CCP_31_PREFIX . 'localidades as loc', 'cp.localidad', '=', 'loc.id')
+                ->select(
+                    'est.texto as estado',
+                    'mun.texto as municipio',
+                    'loc.texto as localidad'
+                )
+                ->first();
+
+            if (!$cpData) {
+                return null;
+            }
+
+            $colonias = DB::table(self::CCP_31_PREFIX . 'colonias as col')
+                ->where('col.codigo_postal', $codigoPostal)
+                ->select('col.id', 'col.texto')
+                ->get();
+
+            return [
+                'estado' => $cpData->estado,
+                'municipio' => $cpData->municipio,
+                'localidad' => $cpData->localidad,
+                'colonias' => $colonias,
+            ];
+        });
     }
 }

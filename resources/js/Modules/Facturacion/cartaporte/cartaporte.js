@@ -1,97 +1,214 @@
 import TomSelect from 'tom-select';
-import 'tom-select/dist/css/tom-select.bootstrap5.min.css';
 
 document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('create-cartaporte-form');
-    if (!form) return;
 
-    let mercanciaIndex = 0;
+    const { apiUrls, oldData, errors } = window.cartaPorteData;
 
-    // --- TomSelect Initializer ---
-    function initializeTomSelect(element, url, options = {}) {
-        if (!element) return;
-        const defaultOptions = {
+    /**
+     * =========================================================================
+     * UTILITIES
+     * =========================================================================
+     */
+
+    const createRemoteTomSelect = (selector, catalogName, customOptions = {}) => {
+        const url = apiUrls.searchableCatalogos + catalogName + '?q=';
+        return new TomSelect(selector, {
             valueField: 'id',
-            labelField: 'texto',
-            searchField: ['id', 'texto'],
-            create: false,
-            placeholder: 'Escriba para buscar...',
-            load: function(query, callback) {
-                if (!query.length) return callback();
-                const fullUrl = `${window.apiUrls.satCatalogos}/${url}?q=${encodeURIComponent(query)}`;
-                fetch(fullUrl)
+            labelField: 'descripcion',
+            searchField: ['id', 'descripcion'],
+            load: function (query, callback) {
+                fetch(url + encodeURIComponent(query))
                     .then(response => response.json())
-                    .then(json => callback(json))
-                    .catch(() => callback());
+                    .then(json => {
+                        callback(json);
+                    }).catch(() => {
+                        callback();
+                    });
+            },
+            render: {
+                option: function (data, escape) {
+                    return `<div>${escape(data.id)} - ${escape(data.descripcion)}</div>`;
+                },
+                item: function (item, escape) {
+                    return `<div>${escape(item.id)} - ${escape(item.descripcion)}</div>`;
+                }
+            },
+            ...customOptions
+        });
+    };
+
+    const createLocalTomSelect = (selector, options, customConfig = {}) => {
+        return new TomSelect(selector, {
+            valueField: 'id',
+            labelField: 'descripcion',
+            searchField: 'descripcion',
+            options: options,
+            ...customConfig
+        });
+    };
+
+    const applyError = (element, index, fieldName) => {
+        const errorKey = `mercancias.${index}.${fieldName}`;
+        if (errors[errorKey]) {
+            element.classList.add('is-invalid');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.textContent = errors[errorKey][0];
+            // Insert after the parent of the select (TomSelect replaces the original select)
+            if (element.tomselect) {
+                 element.tomselect.wrapper.parentNode.appendChild(errorDiv);
+            } else {
+                 element.parentNode.appendChild(errorDiv);
             }
-        };
-        return new TomSelect(element, { ...defaultOptions, ...options });
+        }
+    };
+
+    /**
+     * =========================================================================
+     * CÓDIGO POSTAL LOGIC
+     * =========================================================================
+     */
+
+    const setupCodigoPostalListener = (cpInputId, estadoInputId, municipioInputId, localidadInputId, coloniaSelectId) => {
+        const cpInput = document.getElementById(cpInputId);
+        if (!cpInput) return;
+
+        const coloniaSelect = new TomSelect(`#${coloniaSelectId}`, { create: false });
+
+        cpInput.addEventListener('input', function () {
+            const cp = this.value;
+            if (cp.length === 5) {
+                fetch(apiUrls.codigoPostalInfo + cp)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error(data.error);
+                            return;
+                        }
+                        document.getElementById(estadoInputId).value = data.estado || '';
+                        document.getElementById(municipioInputId).value = data.municipio || '';
+                        document.getElementById(localidadInputId).value = data.localidad || '';
+
+                        coloniaSelect.clear();
+                        coloniaSelect.clearOptions();
+                        if (data.colonias) {
+                            const coloniasOptions = Object.entries(data.colonias).map(([id, desc]) => ({ id: id, descripcion: desc }));
+                            coloniaSelect.addOptions(coloniasOptions);
+                        }
+                    })
+                    .catch(error => console.error('Error fetching CP info:', error));
+            }
+        });
+    };
+
+    setupCodigoPostalListener('origen_codigo_postal', 'origen_estado', 'origen_municipio', 'origen_localidad', 'origen_colonia');
+    setupCodigoPostalListener('destino_codigo_postal', 'destino_estado', 'destino_municipio', 'destino_localidad', 'destino_colonia');
+
+    if (document.getElementById('origen_colonia')) {
+        new TomSelect('#origen_colonia', { create: false });
     }
 
-    // --- Initialize Static Selects ---
-    initializeTomSelect(document.getElementById('origen_colonia'), 'coloniasCcp31');
-    initializeTomSelect(document.getElementById('destino_colonia'), 'coloniasCcp31');
-    initializeTomSelect(document.getElementById('autotransporte_perm_sct'), 'tiposPermisoCcp31');
-    initializeTomSelect(document.getElementById('autotransporte_config_vehicular'), 'configuracionesAutotransporteCcp31');
-    initializeTomSelect(document.getElementById('figura_transporte_tipo_figura'), 'figurasTransporteCcp31');
+    /**
+     * =========================================================================
+     * CARGA DE CATÁLOGOS ESTÁTICOS
+     * =========================================================================
+     */
 
-    // --- Dynamic Mercancias Table ---
-    document.getElementById('add-mercancia').addEventListener('click', function () {
-        const tableBody = document.getElementById('mercancias-table').getElementsByTagName('tbody')[0];
-        const newRow = tableBody.insertRow();
-        newRow.dataset.index = mercanciaIndex;
+    fetch(apiUrls.cartaPorteCatalogos)
+        .then(response => response.json())
+        .then(data => {
+            if (data.tiposPermiso) createLocalTomSelect('#autotransporte_perm_sct', data.tiposPermiso);
+            if (data.configuracionesAutotransporte) createLocalTomSelect('#autotransporte_config_vehicular', data.configuracionesAutotransporte);
+            if (data.figurasTransporte) createLocalTomSelect('#figura_transporte_tipo_figura', data.figurasTransporte);
+        })
+        .catch(error => console.error('Error fetching static catalogs:', error));
 
+    /**
+     * =========================================================================
+     * MANEJO DE MERCANCÍAS
+     * =========================================================================
+     */
+    let mercanciaIndex = 0;
+    const mercanciasTableBody = document.querySelector('#mercancias-table tbody');
+
+    const addMercanciaRow = (data = {}, index = -1) => {
+        const currentIndex = index === -1 ? mercanciaIndex : index;
+
+        const newRow = document.createElement('tr');
         newRow.innerHTML = `
-            <td><select name="mercancias[${mercanciaIndex}][bienes_transp]"></select></td>
-            <td><input type="text" class="form-control form-control-sm" name="mercancias[${mercanciaIndex}][descripcion]"></td>
-            <td><input type="number" class="form-control form-control-sm" name="mercancias[${mercanciaIndex}][cantidad]" min="0.01" step="0.01"></td>
-            <td><select name="mercancias[${mercanciaIndex}][clave_unidad]"></select></td>
-            <td><input type="number" class="form-control form-control-sm" name="mercancias[${mercanciaIndex}][peso_en_kg]" min="0.001" step="0.001"></td>
-            <td><button type="button" class="btn btn-danger btn-sm remove-mercancia"><i class="fa-solid fa-trash"></i></button></td>
+            <td>
+                <select id="mercancia_bienes_${currentIndex}" name="mercancias[${currentIndex}][bienes_transp]"></select>
+            </td>
+            <td><input type="text" class="form-control" name="mercancias[${currentIndex}][descripcion]" value="${data.descripcion || ''}"></td>
+            <td><input type="number" class="form-control" name="mercancias[${currentIndex}][cantidad]" value="${data.cantidad || ''}" step="any"></td>
+            <td>
+                <select id="mercancia_clave_unidad_${currentIndex}" name="mercancias[${currentIndex}][clave_unidad]"></select>
+            </td>
+            <td><input type="number" class="form-control" name="mercancias[${currentIndex}][peso_kg]" value="${data.peso_kg || ''}" step="any"></td>
+            <td>
+                <button type="button" class="btn btn-danger btn-sm remove-mercancia"><i class="fa-solid fa-trash"></i></button>
+            </td>
         `;
+        mercanciasTableBody.appendChild(newRow);
 
-        initializeTomSelect(newRow.querySelector(`select[name="mercancias[${mercanciaIndex}][bienes_transp]"]`), 'productosServiciosCcp31');
-        initializeTomSelect(newRow.querySelector(`select[name="mercancias[${mercanciaIndex}][clave_unidad]"]`), 'clavesUnidadesCcp31');
+        // --- Inicializar TomSelect y cargar valores --- 
+        const bienesSelectEl = newRow.querySelector(`#mercancia_bienes_${currentIndex}`);
+        const claveUnidadSelectEl = newRow.querySelector(`#mercancia_clave_unidad_${currentIndex}`);
 
-        mercanciaIndex++;
-    });
+        const bienesSelect = createRemoteTomSelect(bienesSelectEl, 'productosServicios');
+        const claveUnidadSelect = createRemoteTomSelect(claveUnidadSelectEl, 'clavesUnidad');
 
-    // Remove Mercancia Row
-    document.getElementById('mercancias-table').addEventListener('click', function (e) {
-        if (e.target && e.target.closest('.remove-mercancia')) {
+        if (data.bienes_transp) {
+            bienesSelect.load(function(callback) {
+                fetch(`${apiUrls.searchableCatalogos}productosServicios?q=${data.bienes_transp}`)
+                    .then(res => res.json()).then(json => {
+                        callback(json);
+                        bienesSelect.setValue(data.bienes_transp, 'silent');
+                    });
+            });
+        }
+        if (data.clave_unidad) {
+             claveUnidadSelect.load(function(callback) {
+                fetch(`${apiUrls.searchableCatalogos}clavesUnidad?q=${data.clave_unidad}`)
+                    .then(res => res.json()).then(json => {
+                        callback(json);
+                        claveUnidadSelect.setValue(data.clave_unidad, 'silent');
+                    });
+            });
+        }
+
+        bienesSelect.on('item_add', function(value, $item) {
+            const selectedData = this.options[value];
+            if (selectedData) {
+                newRow.querySelector(`input[name="mercancias[${currentIndex}][descripcion]"]`).value = selectedData.descripcion;
+            }
+        });
+
+        // --- Aplicar Errores de Validación ---
+        applyError(bienesSelectEl, currentIndex, 'bienes_transp');
+        applyError(newRow.querySelector(`input[name="mercancias[${currentIndex}][descripcion]"]`), currentIndex, 'descripcion');
+        applyError(newRow.querySelector(`input[name="mercancias[${currentIndex}][cantidad]"]`), currentIndex, 'cantidad');
+        applyError(claveUnidadSelectEl, currentIndex, 'clave_unidad');
+        applyError(newRow.querySelector(`input[name="mercancias[${currentIndex}][peso_kg]"]`), currentIndex, 'peso_kg');
+
+        if (index === -1) {
+            mercanciaIndex++;
+        }
+    };
+
+    // --- Lógica de Inicialización ---
+    document.getElementById('add-mercancia').addEventListener('click', () => addMercanciaRow());
+
+    mercanciasTableBody.addEventListener('click', function (e) {
+        if (e.target.closest('.remove-mercancia')) {
             e.target.closest('tr').remove();
         }
     });
 
-    // --- Draft Saving Logic ---
-    const saveDraftBtn = document.getElementById('save-draft-btn');
-    if(saveDraftBtn) {
-        saveDraftBtn.addEventListener('click', function() {
-            const mainForm = document.getElementById('create-cartaporte-form');
-            const draftForm = document.getElementById('draft-form');
-            if (!mainForm || !draftForm) return;
-
-            draftForm.innerHTML = ''; // Clear previous fields
-            
-            // Clone CSRF token
-            const csrfToken = mainForm.querySelector('input[name="_token"]');
-            if (csrfToken) {
-                draftForm.appendChild(csrfToken.cloneNode(true));
-            }
-
-            // Clone all form inputs
-            const inputs = mainForm.querySelectorAll('input, select, textarea');
-            inputs.forEach(input => {
-                if(input.name && input.name !== '_token') {
-                    // Create a new hidden input to carry the value
-                    const hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = input.name;
-                    hiddenInput.value = input.value;
-                    draftForm.appendChild(hiddenInput);
-                }
-            });
-            draftForm.submit();
+    if (oldData && oldData.length > 0) {
+        oldData.forEach((mercancia, index) => {
+            addMercanciaRow(mercancia, index);
         });
+        mercanciaIndex = oldData.length;
     }
 });
