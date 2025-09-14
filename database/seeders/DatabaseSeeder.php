@@ -19,8 +19,9 @@ class DatabaseSeeder extends Seeder
 
         // Llamar al seeder que crea los roles y módulos
         $this->call(RolesAndModulesSeeder::class);
-        $this->call(SatCatalogsSeeder::class);
-        $this->call(FormasDigitalesPacSeeder::class);
+        // $this->call(SatCatalogsSeeder::class);
+        $this->call(PacsTableSeeder::class);
+        $this->call(CartaPorteSeeder::class);
 
         // Crear el usuario Super-Admin
         $superAdmin = User::firstOrCreate(

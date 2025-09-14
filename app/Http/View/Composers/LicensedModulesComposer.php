@@ -39,17 +39,18 @@ class LicensedModulesComposer
                 foreach ($licencias as $licencia) {
                     if ($licencia->modulo) {
                         $module = $licencia->modulo;
-                        // Si el submenu es una cadena, lo decodificamos manualmente.
-                        // Esto es un workaround porque el casteo no se está aplicando automáticamente.
-                        if (is_string($module->getRawOriginal('submenu'))) {
-                            $module->setAttribute('submenu', json_decode($module->getRawOriginal('submenu'), true));
-                        }
+
+                        // Explicitly cast submenu to array
+                        $module->setAttribute('submenu', (array) json_decode($module->getRawOriginal('submenu'), true));
+
                         $licensedModules->push($module);
                     }
                 }
                 $licensedModules = $licensedModules->unique('id');
             }
         }
+
+        //dd($licensedModules);
 
         // Pasamos todas las variables a la vista
                         // Pasamos todas las variables a la vista

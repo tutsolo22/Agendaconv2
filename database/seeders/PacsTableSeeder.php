@@ -30,7 +30,7 @@ class PacsTableSeeder extends Seeder
             ]
         );
 
-        Pac::updateOrCreate(
+                Pac::updateOrCreate(
             ['driver' => 'edicom'],
             [
                 'nombre' => 'EDICOM',
@@ -42,6 +42,21 @@ class PacsTableSeeder extends Seeder
                     'password' => 'TU_PASSWORD_DE_EDICOM'
                 ],
                 'is_active' => true,
+            ]
+        );
+
+        Pac::updateOrCreate(
+            ['driver' => 'formas_digitales'],
+            [
+                'nombre' => 'Formas Digitales',
+                'rfc' => 'FCG840618N51', // RFC del PAC, obtenido de la documentación
+                'url_produccion' => 'https://v33.facturacfdi.mx/WSTimbradoCFDIService?wsdl',
+                'url_pruebas' => 'https://dev33.facturacfdi.mx/WSTimbradoCFDIService?wsdl',
+                'credentials' => [
+                    'user' => '',
+                    'password' => '',
+                ],
+                'is_active' => false, // No lo activamos por defecto para no interferir con configuraciones existentes
             ]
         );
     }

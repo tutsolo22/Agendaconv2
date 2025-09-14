@@ -4,8 +4,8 @@
     <div class="col-md-6">
         <div class="mb-3">
             <label for="tenant_id" class="form-label">{{ __('Tenant') }}</label>
-            <select class="form-select @error('tenant_id') is-invalid @enderror" id="tenant_id" name="tenant_id">
-                <option value="">{{ __('Sin Asignar (Licencia Flotante)') }}</option>
+            <select class="form-select @error('tenant_id') is-invalid @enderror" id="tenant_id" name="tenant_id" required>
+                <option value="" disabled selected>{{ __('Seleccione un Tenant') }}</option>
                 @foreach($tenants as $tenant)
                     <option value="{{ $tenant->id }}" @selected(old('tenant_id', $licencia->tenant_id ?? request('tenant_id')) == $tenant->id)>
                         {{ $tenant->name }}

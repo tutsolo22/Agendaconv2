@@ -10,8 +10,8 @@ interface TimbradoServiceInterface
 {
     /**
      * Timbra un CFDI.
-     * @param array $cfdiData Los datos para construir el CFDI.
+     * @param string $xmlSellado El contenido del XML del CFDI ya sellado.
      * @return object El resultado del timbrado (éxito, XML, UUID, etc.).
      */
-    public function timbrar(array $cfdiData): object;
+    public function timbrar(string $xmlSellado): object;
 }

@@ -51,6 +51,10 @@ class RolesAndModulesSeeder extends Seeder
                 'nombre' => 'Citas Medicas',
                 'slug' => 'citas-medicas',
                 'route_name' => 'tenant.citas.index', // Nombre de ruta de ejemplo
+                'submenu' => json_encode([
+                    ['nombre' => 'Agenda', 'route_name' => 'tenant.citas.agenda'],
+                    ['nombre' => 'Pacientes', 'route_name' => 'tenant.citas.pacientes'],
+                ]),
                 'descripcion' => 'Agendamiento y gestión de citas para consultorios.',
                 'icono' => 'fa-solid fa-calendar-check',
                 'is_active' => true
@@ -59,6 +63,7 @@ class RolesAndModulesSeeder extends Seeder
                 'nombre' => 'Restaurante',
                 'slug' => 'restaurante',
                 'route_name' => 'tenant.restaurante.index', // Nombre de ruta de ejemplo
+                'submenu' => null,
                 'descripcion' => 'Gestión de mesas, menús y pedidos.',
                 'icono' => 'fa-solid fa-utensils',
                 'is_active' => true
@@ -67,6 +72,11 @@ class RolesAndModulesSeeder extends Seeder
                 'nombre' => 'Facturacion V4',
                 'slug' => 'facturacion-v4',
                 'route_name' => 'tenant.facturacion.index', // Ruta principal del módulo de facturación
+                'submenu' => json_encode([
+                    ['nombre' => 'CFDI 4.0', 'route_name' => 'tenant.facturacion.cfdi40'],
+                    ['nombre' => 'Pagos 2.0', 'route_name' => 'tenant.facturacion.pagos20'],
+                    ['nombre' => 'Retenciones 2.0', 'route_name' => 'tenant.facturacion.retenciones20'],
+                ]),
                 'descripcion' => 'Emisión de facturas electrónicas CFDI 4.0.',
                 'icono' => 'fa-solid fa-file-invoice-dollar',
                 'is_active' => true

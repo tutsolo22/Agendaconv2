@@ -77,25 +77,35 @@
                                     </a>
                                     <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                                         @foreach ($licensedModules as $modulo)
-                                            @if (!empty($modulo->submenu))
+                                            @if (!empty($modulo->submenu) && (is_array($modulo->submenu) || is_object($modulo->submenu)))
                                                 <li class="dropdown-submenu">
                                                     <a class="dropdown-item dropdown-toggle" href="#">
                                                         <i class="fa-solid {{ $modulo->icono }} fa-fw me-2"></i>{{ $modulo->nombre }}
                                                     </a>
                                                     <ul class="dropdown-menu">
                                                         @foreach ($modulo->submenu as $subitem_group)
-                                                            <li class="dropdown-submenu">
-                                                                <a class="dropdown-item dropdown-toggle" href="#">{{ $subitem_group['nombre'] }}</a>
-                                                                <ul class="dropdown-menu">
-                                                                    @foreach ($subitem_group['submenu'] as $subitem_link)
-                                                                        @if (isset($subitem_link['route']) && Route::has($subitem_link['route']))
-                                                                            <li>
-                                                                                <a class="dropdown-item" href="{{ route($subitem_link['route']) }}">{{ $subitem_link['nombre'] }}</a>
-                                                                            </li>
-                                                                        @endif
-                                                                    @endforeach
-                                                                </ul>
-                                                            </li>
+                                                            {{-- Check if $subitem_group has a nested 'submenu' --}}
+                                                            @if (isset($subitem_group['submenu']) && (is_array($subitem_group['submenu']) || is_object($subitem_group['submenu'])))
+                                                                <li class="dropdown-submenu">
+                                                                    <a class="dropdown-item dropdown-toggle" href="#">{{ $subitem_group['nombre'] }}</a>
+                                                                    <ul class="dropdown-menu">
+                                                                        @foreach ($subitem_group['submenu'] as $subitem_link)
+                                                                            @if (isset($subitem_link['route']) && Route::has($subitem_link['route']))
+                                                                                <li>
+                                                                                    <a class="dropdown-item" href="{{ route($subitem_link['route']) }}">{{ $subitem_link['nombre'] }}</a>
+                                                                                </li>
+                                                                            @endif
+                                                                        @endforeach
+                                                                    </ul>
+                                                                </li>
+                                                            @else
+                                                                {{-- If no nested submenu, treat $subitem_group as a direct link --}}
+                                                                @if (isset($subitem_group['route_name']) && Route::has($subitem_group['route_name']))
+                                                                    <li>
+                                                                        <a class="dropdown-item" href="{{ route($subitem_group['route_name']) }}">{{ $subitem_group['nombre'] }}</a>
+                                                                    </li>
+                                                                @endif
+                                                            @endif
                                                         @endforeach
                                                     </ul>
                                                 </li>

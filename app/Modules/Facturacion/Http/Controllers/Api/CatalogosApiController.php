@@ -5,6 +5,7 @@ namespace App\Modules\Facturacion\Http\Controllers\Api;
 use App\Http\Controllers\Controller; // This line is already present and correct.
 use App\Modules\Facturacion\Models\Configuracion\SerieFolio;
 use App\Models\Cliente;
+use App\Modules\Facturacion\Models\Cfdi;
 use App\Modules\Facturacion\Services\SatCatalogService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -146,5 +147,89 @@ class CatalogosApiController extends Controller
     { 
         $query = $request->input('q', '');
         return response()->json($this->catalogService->getTiposRelacion($query), 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function searchCfdis(Request $request): JsonResponse
+    {
+        $query = $request->input('q', '');
+
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $cfdis = Cfdi::where(function ($q) use ($query) {
+                              $q->where('folio', 'like', "%{$query}%")
+                                ->orWhere('uuid_fiscal', 'like', "%{$query}%");
+                          })
+                          ->limit(15)
+                          ->get(['id', 'serie', 'folio', 'total', 'uuid_fiscal']);
+
+        return response()->json($cfdis, 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function getSatCatalog(Request $request, string $catalogName): JsonResponse
+    {
+        $query = $request->input('q', '');
+        $methodName = 'get' . ucfirst($catalogName);
+
+        if (method_exists($this->catalogService, $methodName)) {
+            $data = $this->catalogService->$methodName($query);
+            return response()->json($data, 200, [], JSON_UNESCAPED_UNICODE);
+        }
+
+        return response()->json(['error' => 'Catálogo no encontrado o método no implementado.'], 404);
+    }
+
+    /**
+     * Devuelve todos los catálogos estáticos necesarios para el formulario de creación de Carta Porte.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAllCartaPorte(): JsonResponse
+    {
+        $catalogos = [
+            'tiposPermiso' => $this->catalogService->getTiposPermisoCcp31(),
+            'configuracionesAutotransporte' => $this->catalogService->getConfiguracionesAutotransporteCcp31(),
+            'figurasTransporte' => $this->catalogService->getFigurasTransporteCcp31(),
+        ];
+        
+        return response()->json($catalogos, 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function getCodigoPostalInfo(Request $request, string $codigoPostal): JsonResponse
+    {
+        if (strlen($codigoPostal) !== 5) {
+            return response()->json(['error' => 'El código postal debe tener 5 dígitos.'], 400);
+        }
+
+        $data = $this->catalogService->getCodigoPostalInfo($codigoPostal);
+
+        if (empty($data)) {
+            return response()->json(['error' => 'No se encontró información para el código postal proporcionado.'], 404);
+        }
+
+        return response()->json($data, 200, [], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Devuelve todos los catálogos estáticos necesarios para el formulario de Nómina.
+     */
+    public function getNominaCatalogs(): JsonResponse
+    {
+        $catalogos = [
+            'tipos_nomina' => $this->catalogService->getTiposNomina(),
+            'periodicidades_pago' => $this->catalogService->getPeriodicidadesPago(),
+            'tipos_contrato' => $this->catalogService->getTiposContrato(),
+            'tipos_regimen' => $this->catalogService->getTiposRegimen(),
+            'tipos_jornada' => $this->catalogService->getTiposJornada(),
+            'riesgos_puesto' => $this->catalogService->getRiesgosPuesto(),
+            'bancos' => $this->catalogService->getBancos(),
+            'tipos_percepcion' => $this->catalogService->getTiposPercepcion(),
+            'tipos_deduccion' => $this->catalogService->getTiposDeduccion(),
+            'tipos_otro_pago' => $this->catalogService->getTiposOtroPago(),
+            'tipos_incapacidad' => $this->catalogService->getTiposIncapacidad(),
+        ];
+        
+        return response()->json($catalogos, 200, [], JSON_UNESCAPED_UNICODE);
     }
 }

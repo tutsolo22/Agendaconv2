@@ -106,8 +106,8 @@ class FacturacionServiceProvider extends ServiceProvider
             $activeDriver = $this->getActivePacDriver('formas_digitales');
 
             switch (strtolower($activeDriver)) {
-                // case 'edicom':
-                //     return new EdicomRetencionTimbradoService($app->make(SatCredentialService::class));
+                case 'edicom':
+                    return new EdicomRetencionService($app->make(SatCredentialService::class));
                 case 'formas_digitales':
                 default:
                     return new FormasDigitalesRetencionService($app->make(SatCredentialService::class));
@@ -137,7 +137,7 @@ class FacturacionServiceProvider extends ServiceProvider
         // Cargar las rutas de la API del módulo
         Route::middleware('api')
             ->prefix('api')
-            ->as('tenant.api.')
+            ->as('tenant.facturacion.api.') // Corrected prefix
             ->group(function () use ($basePath) {
                 $this->loadRoutesFrom($basePath . '/Routes/api.php');
             });

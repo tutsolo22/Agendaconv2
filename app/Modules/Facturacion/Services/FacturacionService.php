@@ -4,6 +4,8 @@ namespace App\Modules\Facturacion\Services;
 
 use App\Modules\Facturacion\Models\Cfdi;
 use App\Modules\Facturacion\Services\Contracts\TimbradoServiceInterface;
+use App\Modules\Facturacion\Services\Helpers\CfdiCreatorHelper;
+use App\Modules\Facturacion\Services\SatCredentialService;
 use App\Modules\Facturacion\Utils\SatCatalogs;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -13,6 +15,7 @@ class FacturacionService
     protected TimbradoServiceInterface $timbradoService;
     protected ComprobanteEmailService $emailService;
     protected PdfService $pdfService;
+    protected SatCredentialService $credentialService;
 
     /**
      * Inyectamos los servicios necesarios.
@@ -20,11 +23,13 @@ class FacturacionService
     public function __construct(
         TimbradoServiceInterface $timbradoService, 
         ComprobanteEmailService $emailService,
-        PdfService $pdfService
+        PdfService $pdfService,
+        SatCredentialService $credentialService
     ) {
         $this->timbradoService = $timbradoService;
         $this->emailService = $emailService;
         $this->pdfService = $pdfService;
+        $this->credentialService = $credentialService;
     }
 
     /**
@@ -57,14 +62,17 @@ class FacturacionService
         // 1. Limpiar y preparar datos.
         $data['receptor']['nombre'] = SatCatalogs::cleanRazonSocial($data['receptor']['nombre']);
 
-        // 2. Timbrar el CFDI.
-        $resultadoTimbrado = $this->timbradoService->timbrar($data);
+        // 2. Crear y sellar el XML.
+        $xmlSellado = CfdiCreatorHelper::crearXml($data, $this->credentialService);
+
+        // 3. Timbrar el CFDI.
+        $resultadoTimbrado = $this->timbradoService->timbrar($xmlSellado);
 
         if (!$resultadoTimbrado->success) {
             throw new Exception("Error del PAC: " . ($resultadoTimbrado->message ?? 'Error desconocido.'));
         }
 
-        // 3. Guardar el CFDI en la base de datos.
+        // 4. Guardar el CFDI en la base de datos.
         $cfdi = DB::transaction(function () use ($data, $resultadoTimbrado) {
             // Lógica para crear el CFDI en la BD.
             // ...
@@ -78,10 +86,10 @@ class FacturacionService
             ]);
         });
 
-        // 4. Generar el PDF.
+        // 5. Generar el PDF.
         $pdfContent = $this->pdfService->generate($cfdi);
 
-        // 5. Enviar el correo electrónico.
+        // 6. Enviar el correo electrónico.
         $this->emailService->send(
             $data['receptor']['email'], 
             "Comprobante Fiscal Digital {$cfdi->serie}-{$cfdi->folio}", 

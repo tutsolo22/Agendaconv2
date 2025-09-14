@@ -52,7 +52,7 @@ class CfdiController extends Controller
      */
     public function store(Request $request, FacturacionService $facturacionService)
     {
-        // Aquí normalmente usarías un FormRequest para una validación más robusta.
+        // Aquí normally usarías un FormRequest para una validación más robusta.
         $validatedData = $request->validate([
             'cliente_id' => 'required|exists:clientes,id',
             'serie_folio_id' => 'required|exists:facturacion_series_folios,id',
@@ -203,5 +203,12 @@ class CfdiController extends Controller
     {
         // Lógica para guardar la factura global
         return redirect()->route('tenant.facturacion.cfdis.index')->with('success', 'Factura global creada.');
+    }
+
+    public function enviarCorreo(Request $request, Cfdi $cfdi)
+    {
+        // Lógica para enviar el correo...
+        // Por ahora, solo redirigimos con un mensaje de éxito.
+        return back()->with('success', 'Correo enviado exitosamente.');
     }
 }
