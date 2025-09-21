@@ -211,4 +211,38 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         mercanciaIndex = oldData.length;
     }
+
+    /**
+     * =========================================================================
+     * SAVE DRAFT LOGIC
+     * =========================================================================
+     */
+    const saveDraftBtn = document.getElementById('save-draft-btn');
+    const mainForm = document.getElementById('create-cartaporte-form');
+    const draftForm = document.getElementById('draft-form');
+
+    if (saveDraftBtn && mainForm && draftForm) {
+        saveDraftBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Limpiar el formulario de borrador
+            draftForm.innerHTML = '';
+            draftForm.appendChild(mainForm.querySelector('input[name="_token"]').cloneNode(true));
+
+            // Clonar todos los campos del formulario principal al de borrador
+            const formData = new FormData(mainForm);
+            for (let [key, value] of formData.entries()) {
+                // No clonar el token de nuevo, ya lo hemos añadido
+                if (key === '_token') continue;
+
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                draftForm.appendChild(input);
+            }
+            
+            draftForm.submit();
+        });
+    }
 });
