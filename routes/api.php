@@ -23,4 +23,9 @@ Route::middleware('auth:sanctum')->group(function() {
     // Facturacion API
     Route::get('/facturacion/clientes/search', [CatalogosApiController::class, 'searchClients'])
          ->name('api.facturacion.clientes.search');
+
+    // HexaFac API
+    Route::prefix('hexafac/v1')->name('api.hexafac.v1.')->group(function () {
+        Route::post('facturas', [\App\Http\Controllers\Api\HexaFac\FacturaApiController::class, 'store'])->name('facturas.store');
+    });
 });

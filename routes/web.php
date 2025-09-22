@@ -74,6 +74,15 @@ Route::middleware(['auth', 'role:Tenant-Admin'])->prefix('tenant')->name('tenant
     // respectivos Service Providers (ej. FacturacionServiceProvider).
     // Esto mantiene el código modular y organizado.
     // =======================================================================
+
+    // HexaFac Dashboard
+    Route::prefix('hexafac')->name('hexafac.')->group(function () {
+        Route::resource('applications', App\Http\Controllers\Tenant\HexaFac\HexaFacApplicationController::class);
+        Route::prefix('applications/{application}')->name('applications.')->group(function () {
+            Route::resource('apikeys', App\Http\Controllers\Tenant\HexaFac\HexaFacApiKeyController::class)->except(['show']);
+            Route::resource('webhooks', App\Http\Controllers\Tenant\HexaFac\HexaFacWebhookController::class)->except(['show']);
+        });
+    });
 });
 
 
