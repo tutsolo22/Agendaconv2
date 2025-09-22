@@ -25,4 +25,14 @@ class FacturaApiController extends Controller
             'transaccion_id' => $transaccionId
         ], 202);
     }
+
+    public function cancelar(Request $request, $uuid)
+    {
+        // Logic to cancel an invoice
+    }
+
+    public function show(Request $request, $uuid)
+    {
+        // Logic to show invoice status
+    }
 }
