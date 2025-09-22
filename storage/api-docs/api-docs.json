@@ -1,0 +1,232 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "HexaFac API Documentation",
+        "description": "API para la plataforma de facturación centralizada HexaFac.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://my-default-host.com",
+            "description": "HexaFac API Server"
+        }
+    ],
+    "paths": {
+        "/api/hexafac/v1/facturas": {
+            "post": {
+                "tags": [
+                    "Facturas"
+                ],
+                "summary": "Crear una nueva factura",
+                "operationId": "createFactura",
+                "requestBody": {
+                    "description": "Datos para crear una factura",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "cliente",
+                                    "conceptos",
+                                    "opciones"
+                                ],
+                                "properties": {
+                                    "cliente": {
+                                        "properties": {
+                                            "id_externo": {
+                                                "description": "ID del cliente en la aplicación externa",
+                                                "type": "string",
+                                                "nullable": true
+                                            },
+                                            "crear_si_no_existe": {
+                                                "description": "Indica si el cliente debe crearse si no existe",
+                                                "type": "boolean"
+                                            },
+                                            "rfc": {
+                                                "description": "RFC del cliente",
+                                                "type": "string"
+                                            },
+                                            "razon_social": {
+                                                "description": "Razón social del cliente",
+                                                "type": "string"
+                                            },
+                                            "cfdi_uso": {
+                                                "description": "Uso de CFDI",
+                                                "type": "string"
+                                            },
+                                            "regimen_fiscal": {
+                                                "description": "Régimen fiscal",
+                                                "type": "string"
+                                            },
+                                            "domicilio": {
+                                                "properties": {
+                                                    "codigo_postal": {
+                                                        "description": "Código postal del domicilio fiscal",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "conceptos": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "clave_sat": {
+                                                    "description": "Clave de producto/servicio del SAT",
+                                                    "type": "string"
+                                                },
+                                                "id_externo": {
+                                                    "description": "ID del producto en la aplicación externa",
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "descripcion": {
+                                                    "description": "Descripción del concepto",
+                                                    "type": "string"
+                                                },
+                                                "cantidad": {
+                                                    "description": "Cantidad",
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "valor_unitario": {
+                                                    "description": "Valor unitario",
+                                                    "type": "number",
+                                                    "format": "float"
+                                                },
+                                                "clave_unidad": {
+                                                    "description": "Clave de unidad del SAT",
+                                                    "type": "string"
+                                                },
+                                                "impuestos": {
+                                                    "properties": {
+                                                        "iva_tasa": {
+                                                            "description": "Tasa de IVA",
+                                                            "type": "number",
+                                                            "format": "float",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "opciones": {
+                                        "properties": {
+                                            "tipo_comprobante": {
+                                                "description": "Tipo de comprobante (I, E, T, P, N)",
+                                                "type": "string"
+                                            },
+                                            "moneda": {
+                                                "description": "Moneda",
+                                                "type": "string"
+                                            },
+                                            "forma_pago": {
+                                                "description": "Forma de pago",
+                                                "type": "string"
+                                            },
+                                            "metodo_pago": {
+                                                "description": "Método de pago",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Petición de factura recibida y encolada para procesamiento asíncrono",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "peticion_recibida"
+                                        },
+                                        "mensaje": {
+                                            "type": "string",
+                                            "example": "La factura ha sido encolada para su procesamiento."
+                                        },
+                                        "transaccion_id": {
+                                            "type": "string",
+                                            "format": "uuid",
+                                            "example": "uuid-para-seguimiento-1234"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "No autorizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Error de validación",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "sanctum": {
+                "type": "apiKey",
+                "description": "API Key para autenticación (Bearer <token>)",
+                "name": "Authorization",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Facturas",
+            "description": "Facturas"
+        }
+    ]
+}
