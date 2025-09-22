@@ -76,3 +76,16 @@ A continuación se presenta el plan de acción detallado para la creación del m
   - [ ] Realizar pruebas funcionales de todos los sub-módulos.
 - [ ] **Migración de Datos (Opcional)**
   - [ ] Si es necesario, crear y ejecutar scripts para migrar datos del sistema anterior.
+
+# Módulo de Facturación - Carta Porte
+
+## Resumen de Tareas (21 de Septiembre de 2025)
+
+- **Implementación de la funcionalidad de "Guardar Borrador"**: Se añadió el código JavaScript necesario para que el botón "Guardar Borrador" en el formulario de creación de Carta Porte funcione correctamente. Esto permite a los usuarios guardar su progreso sin necesidad de validar o timbrar el documento.
+- **Compilación de assets**: Se ejecutó el comando `npm run build` para compilar los archivos JavaScript y CSS, asegurando que los cambios se aplicaran en la aplicación.
+- **Eliminación de un archivo innecesario**: Se borró el archivo `create-global.blade.php` de la raíz del proyecto, ya que no era necesario.
+- **Corrección del seeder de Carta Porte**: El seeder (`CartaPorteSeeder`) estaba fallando por dos razones:
+    - **Lógica incorrecta**: La lógica para crear las mercancías era incorrecta. Se corrigió para que se ajuste a la estructura de la base de datos (CartaPorte -> Mercancias -> Mercancia).
+    - **Longitud de columna incorrecta**: El valor para el campo `perm_sct` era demasiado largo para la columna en la base de datos. Se creó y aplicó una nueva migración para aumentar la longitud de esta columna en la tabla `cp_autotransporte`.
+- **Ejecución de migraciones y seeders**: Se aplicaron los cambios en la base de datos ejecutando las migraciones y luego se ejecutó el seeder de Carta Porte para poblar la base de datos con los datos iniciales.
+- **Confirmación de los cambios (commits)**: Se guardaron todos los cambios en el repositorio de Git a través de dos commits, uno para la nueva funcionalidad y otro para la corrección del seeder.
