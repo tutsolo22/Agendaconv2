@@ -41,6 +41,10 @@ Route::middleware(['auth', 'role:Super-Admin'])->prefix('admin')->name('admin.')
     // Rutas para el panel de configuración del Super-Admin
     Route::get('configuration/{tenant?}', [App\Http\Controllers\Admin\ConfigurationController::class, 'index'])->name('configuration.index');
     Route::post('configuration/{tenant}', [App\Http\Controllers\Admin\ConfigurationController::class, 'update'])->name('configuration.update');
+
+    // Panel de HexaFac
+    Route::get('hexafac/dashboard', [App\Http\Controllers\Admin\HexaFacController::class, 'dashboard'])->name('hexafac.dashboard');
+    Route::resource('hexafac/applications', App\Http\Controllers\Admin\HexaFacApplicationController::class)->names('hexafac.applications');
 });
 
 // Grupo de rutas para el Tenant-Admin
