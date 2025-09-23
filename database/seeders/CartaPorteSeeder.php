@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Modules\Facturacion\Models\Cfdi;
 use App\Modules\Facturacion\Models\CartaPorte\CartaPorte;
 use App\Modules\Facturacion\Models\CartaPorte\Ubicacion;
+use App\Modules\Facturacion\Models\CartaPorte\Mercancias;
 use App\Modules\Facturacion\Models\CartaPorte\Mercancia;
 use App\Modules\Facturacion\Models\CartaPorte\Autotransporte;
 use App\Modules\Facturacion\Models\CartaPorte\FiguraTransporte;
@@ -44,7 +45,7 @@ class CartaPorteSeeder extends Seeder
                 'codigo_postal' => '06000',
             ]);
 
-            $mercancias = Mercancia::create([
+            $mercanciasContainer = Mercancias::create([
                 'carta_porte_id' => $cartaPorte->id,
                 'peso_bruto_total' => 100.00,
                 'unidad_peso' => 'KGM',
@@ -52,7 +53,7 @@ class CartaPorteSeeder extends Seeder
                 'num_total_mercancias' => 1,
             ]);
 
-            $mercancias->mercancia()->create([
+            $mercanciasContainer->mercancia()->create([
                 'bienes_transp' => '01010101',
                 'descripcion' => 'Producto de prueba',
                 'cantidad' => 1,

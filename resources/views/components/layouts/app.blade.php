@@ -46,6 +46,17 @@
                                 </ul>
                             </li>
 
+                            {{-- Dropdown para HexaFac --}}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.hexafac.*') ? 'active' : '' }}" href="#" id="hexafacDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fa-solid fa-fire-flame-curved me-2"></i>HexaFac
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="hexafacDropdown">
+                                    <li><a class="dropdown-item {{ request()->routeIs('admin.hexafac.dashboard') ? 'active' : '' }}" href="{{ route('admin.hexafac.dashboard') }}">{{ __('Panel de Control') }}</a></li>
+                                    <li><a class="dropdown-item {{ request()->routeIs('admin.hexafac.applications.*') ? 'active' : '' }}" href="{{ route('admin.hexafac.applications.index') }}">{{ __('Aplicaciones') }}</a></li>
+                                </ul>
+                            </li>
+
                         @elseif($isTenantAdmin)
                             {{-- ============================ --}}
                             {{-- MENÚ PARA EL TENANT-ADMIN --}}

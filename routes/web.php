@@ -41,6 +41,10 @@ Route::middleware(['auth', 'role:Super-Admin'])->prefix('admin')->name('admin.')
     // Rutas para el panel de configuración del Super-Admin
     Route::get('configuration/{tenant?}', [App\Http\Controllers\Admin\ConfigurationController::class, 'index'])->name('configuration.index');
     Route::post('configuration/{tenant}', [App\Http\Controllers\Admin\ConfigurationController::class, 'update'])->name('configuration.update');
+
+    // Panel de HexaFac
+    Route::get('hexafac/dashboard', [App\Http\Controllers\Admin\HexaFacController::class, 'dashboard'])->name('hexafac.dashboard');
+    Route::resource('hexafac/applications', App\Http\Controllers\Admin\HexaFacApplicationController::class)->names('hexafac.applications');
 });
 
 // Grupo de rutas para el Tenant-Admin
@@ -74,6 +78,15 @@ Route::middleware(['auth', 'role:Tenant-Admin'])->prefix('tenant')->name('tenant
     // respectivos Service Providers (ej. FacturacionServiceProvider).
     // Esto mantiene el código modular y organizado.
     // =======================================================================
+
+    // HexaFac Dashboard
+    Route::prefix('hexafac')->name('hexafac.')->group(function () {
+        Route::resource('applications', App\Http\Controllers\Tenant\HexaFac\HexaFacApplicationController::class);
+        Route::prefix('applications/{application}')->name('applications.')->group(function () {
+            Route::resource('apikeys', App\Http\Controllers\Tenant\HexaFac\HexaFacApiKeyController::class)->except(['show']);
+            Route::resource('webhooks', App\Http\Controllers\Tenant\HexaFac\HexaFacWebhookController::class)->except(['show']);
+        });
+    });
 });
 
 
